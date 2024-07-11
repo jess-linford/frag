@@ -34,6 +34,7 @@ scriptdir               = datadir + "/scripts"
 genome_fasta = refdir + "/GRCh38.p13.genome.fa"
 blklist = refdir + "/hg38-blacklist.v2.bed.gz"
 # Libraries file is a tab-separated file that must include at least the following columns: library, file(bam), and cohort.
+# Uncomment line 62 and comment out lines 52 and 65-68 as needed if you don't want to exclude serial samples or duplicate healthy libraries
 libraries_file = refdir + "/libraries.tsv"
 cytobands = refdir + "/cytoBand.txt"
 
@@ -48,7 +49,7 @@ libraries['readable'] = readable
 libraries = libraries[libraries.readable == True]
 
 # To exclude serial samples:
-# libraries = libraries[libraries.serial == 0]
+libraries = libraries[libraries.serial == 0]
 
 # Make the dictionary
 library_indict = libraries["library"].tolist()
@@ -57,14 +58,14 @@ lib_dict = dict(zip(library_indict, file_indict))
 
 ALL_LIBRARIES = list(lib_dict.keys())
 
-# Make a list of healthy libraries
-HEALTHY_LIBRARIES = libraries[libraries['cohort'] == 'healthy']['library'].tolist()
+# Make a list of healthy libraries if you don't care about duplicates
+# HEALTHY_LIBRARIES = libraries[libraries['cohort'] == 'healthy']['library'].tolist()
 
 # To exclude duplicate healthy libraries run in multiple batches:
-# HEALTHY_LIBRARIES = libraries[
-#     (libraries['cohort'] == 'healthy') & 
-#     ((libraries['duplicate'] == 0) | ((libraries['duplicate'] == 1) & (libraries['batch'] != 1)))
-# ]['library'].tolist()
+HEALTHY_LIBRARIES = libraries[
+    (libraries['cohort'] == 'healthy') & 
+    ((libraries['duplicate'] == 0) | ((libraries['duplicate'] == 1) & (libraries['batch'] != 1)))
+]['library'].tolist()
 
 rule all:
     input:
@@ -365,7 +366,9 @@ rule frag_window_count:
         {log} >> {log} 2>&1
         """
 
-# Merge short and long fragment counts by genomic position for all libraries
+# Merge fragment counts files from all libraries
+# frag_counts.tsv gives total counts by window for each library
+# frag_counts_by_len_class.tsv gives short and long counts by window for each library
 rule count_merge:
     benchmark: benchdir + "/count_merge.benchmark.txt",
     input: expand(frag_counts + "/{library}_count_{length}.tsv", library = ALL_LIBRARIES, length = ["short", "long", "total"]),
@@ -378,7 +381,7 @@ rule count_merge:
         threads = threads,        
     shell:
         """
-        {params.script} \
+        Rscript {params.script} \
         "{input}" \
         {output.frag_counts} \
         {output.frag_counts_by_len_class} \
@@ -403,6 +406,7 @@ rule make_ratios:
         """
 
 # Calculate chromosome arm fragment count z-scores
+# If you don't care about duplicate healthy libraries, comment out line 44 of script
 rule arm_z_scores:
     benchmark: benchdir + "/arm_z_scores.benchmark.txt",
     input: 

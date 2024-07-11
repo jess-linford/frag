@@ -38,8 +38,11 @@ frag_counts <- read_tsv(frag_counts_tsv)
 cat("Reading in libraries file...\n")
 libraries <- read_tsv(libraries_file)
 
+# If you don't care about duplicate healthy libraries, comment out line 44
 cat("Getting list of healthy cohort libraries...\n")
-healthy_libs <- libraries$library[libraries$cohort == "healthy"]
+healthy_libs <- libraries %>% filter(cohort == "healthy") %>% 
+  filter(duplicate == 0 | (duplicate == 1 & batch != 1)) %>%
+  pull(library)
 
 # Define non-acrocentric arms and their genomic coordinates
 cat("Creating dataframe of non-acrocentric arms with coordinates...\n")
