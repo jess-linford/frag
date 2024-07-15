@@ -1,9 +1,15 @@
 #!/usr/bin/env Rscript
 
 args <- commandArgs(trailingOnly = TRUE)
-input_file <- args[1] # weights bed file (short, long, or all fragments)
+# For single cutpoint pathway, input_file looks like {library}_{short/long}_weights.bed
+# or {library}_weights.bed
+# For multiple cutpoints pathway, input_file looks like 
+# {library}_{short/long}_weights_{cutpoint}.bed
+input_file <- args[1]
 keep_bed_file <- args[2] # keep_5mb.bed
-output_file <- args[3] # {library}_count_{short/long/total}.tsv
+# For single cutpoint pathway, output_file looks like {library}_count_{short/long/total}.tmp
+# For multiple cutpoints pathway, output_file looks like {library}_count_{short/long}_{cutpoint}.tmp
+output_file <- args[3]
 num_threads <- as.integer(args[4])
 log_file <- args[5]
 

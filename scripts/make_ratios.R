@@ -1,6 +1,8 @@
 #!/usr/bin/env Rscript
 args <- commandArgs(trailingOnly = TRUE)
-frags_tsv <- args[1] # fragment counts by length class file
+# For single cutpoint pathway, input_file looks like "frag_counts_by_len_class.tsv"
+# For multiple cutpoint pathway, input_file looks like "frag_counts_{cutpoint}.tsv"
+frags_tsv <- args[1] # fragment counts file with all short/long fragment lengths for all libraries
 ratios_tsv <- args[2] # output file
 log_file <- args[3]
 
