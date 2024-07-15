@@ -74,6 +74,7 @@ rule all:
         expand(frag_bams + "/{library}_filt.bam", library = ALL_LIBRARIES),
         expand(frag_beds + "/{library}_frag.bed", library = ALL_LIBRARIES),
         expand(frag_length_distros + "/{library}_frag_length_distro.tsv", library = ALL_LIBRARIES),
+        expand(frag_length_distros + "/{library}_frag_length_histogram.pdf", library = ALL_LIBRARIES),
         frag + "/frag_length_distros_long.tsv",
         frag + "/frag_length_distros_wide.tsv",
         frag + "/frag_length_distros_long_filtered.tsv",
@@ -170,18 +171,23 @@ rule filt_bam_to_frag_bed:
 
 # Generate fragment length distributions
 rule frag_length_distro:
-    benchmark: benchdir + "/frag_length_distro.benchmark.txt",
-    input: frag_beds + "/{library}_frag.bed",
+    benchmark: benchdir + "/{library}_frag_length_distro.benchmark.txt",
+    input: frag_bams + "/{library}_filt.bam",
     log: logdir + "/{library}_frag_length_distro.log",
-    output: frag + "/{library}_frag_length_distro.tsv",
+    output: 
+        metrics = frag_length_distros + "/{library}_frag_length_distro.tsv",
+        histogram = frag_length_distros + "/{library}_frag_length_histogram.pdf",
     params:
         script = scriptdir + "/frag_length_distro.sh",
         max_width = max_filter_length,
+        outdir = frag_length_distros,
     shell:
         """
         {params.script} \
+        {params.outdir} \
         {input} \
-        {output} \
+        {output.metrics} \
+        {output.histogram} \
         {params.max_width} \
         {log} > {log} 2>&1
         """
@@ -189,11 +195,11 @@ rule frag_length_distro:
 # Merge fragment length distribution files
 rule frag_length_distro_merge:
     benchmark: benchdir + "/frag_length_distro_merge.benchmark.txt",
-    input: expand(frag + "/{library}_frag_length_distro.tsv", library = ALL_LIBRARIES),
+    input: expand(frag_length_distros + "/{library}_frag_length_distro.tsv", library = ALL_LIBRARIES),
     log: logdir + "/frag_length_distro_merge.log",
     output: 
         long = frag + "/frag_length_distros_long.tsv",
-        wide = frag + "frag_length_distros_wide.tsv",
+        wide = frag + "/frag_length_distros_wide.tsv",
         long_filtered = frag + "/frag_length_distros_long_filtered.tsv",
         wide_filtered = frag + "/frag_length_distros_wide_filtered.tsv",
     params:
@@ -204,7 +210,7 @@ rule frag_length_distro_merge:
     shell:
         """
         Rscript {params.script} \
-        {input} \
+        "{input}" \
         {output.long} \
         {output.wide} \
         {output.long_filtered} \
@@ -214,7 +220,6 @@ rule frag_length_distro_merge:
         {params.threads} \
         {log} > {log} 2>&1
         """
-
 # Calculate median window lengths for each library
 rule med_frag_window_lengths:
     benchmark: benchdir + "/{library}_med_frag_window_lengths.benchmark.txt",
