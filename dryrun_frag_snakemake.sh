@@ -1,0 +1,1 @@
+snakemake -s frag.smk --dryrun
