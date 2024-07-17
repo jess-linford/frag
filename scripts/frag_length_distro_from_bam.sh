@@ -5,7 +5,7 @@ outdir="$1"
 input_bam="$2"
 output_metrics="$3"
 output_histogram="$4"
-max_width="$5"
+max_frag_length="$5"
 
 # Create the output directory
 mkdir -p "$outdir"
@@ -15,7 +15,7 @@ picard CollectInsertSizeMetrics \
 -I "$input_bam" \
 -O "${output_metrics}.tmp" \
 -H "$output_histogram" \
--W "$max_width"
+-W "$max_frag_length"
 
 # Remove the header rows and keep only the table with sizes and counts
 awk 'NR > 11 {print}' "${output_metrics}.tmp" > "$output_metrics"

@@ -1,16 +1,8 @@
-#########1#########2#########3#########4#########5#########6#########7#########8
-#                                                                              #
-#     Fragmentomic Analysis of Cell-free DNA Whole Genome Sequencing           #
-#                                                                              #
-#########1#########2#########3#########4#########5#########6#########7#########8
 import pandas as pd
-import re
 import numpy as np
 
 # Parameters
 threads = 5
-window_size = 5000000
-max_filter_length = 1000 # Maximum fragment length to keep in bam and bed files
 # Fragment length definitions used for short and long fragments (low to cutpoint and cutpoint to high)
 frag_length_low = 80
 frag_length_high = 220
@@ -19,10 +11,7 @@ cutpoint = 150
 # Directory values
 parentdir               = "/aclm350-zpool1/jlinford/frag"
 analysis_dir            = parentdir + "/analysis"
-bams_dir                = parentdir + "/analysis/bams"
 beds_dir                = parentdir + "/analysis/beds"
-length_distros_dir      = parentdir + "/analysis/length_distros"
-medians_dir             = parentdir + "/analysis/medians"
 counts_dir              = parentdir + "/analysis/counts"
 gc_distros_dir          = parentdir + "/analysis/gc_distros"
 benchdir                = parentdir + "/benchmark"
@@ -31,8 +20,8 @@ refdir                  = parentdir + "/ref"
 scriptdir               = parentdir + "/scripts"
 
 # Input files
-genome_fasta = refdir + "/GRCh38.p13.genome.fa"
-blklist = refdir + "/hg38-blacklist.v2.bed.gz"
+keep_bed = refdir + "/keep_5mb.bed"
+
 # Libraries file is a tab-separated file that must include at least the following columns: library, file(bam), and cohort.
 # Uncomment line 62 and comment out lines 52 and 65-68 and uncomment line 62 as needed if you don't want to exclude serial samples or duplicate healthy libraries
 libraries_file = refdir + "/libraries.tsv"
@@ -69,18 +58,6 @@ HEALTHY_LIBRARIES = libraries[
 
 rule all:
     input:
-        refdir + "/gc5mb.bed",
-        refdir + "/keep_5mb.bed",
-        expand(bams_dir + "/{library}_filt.bam", library = ALL_LIBRARIES),
-        expand(beds_dir + "/{library}_frag.bed", library = ALL_LIBRARIES),
-        expand(length_distros_dir + "/{library}_frag_length_distro.tsv", library = ALL_LIBRARIES),
-        expand(length_distros_dir + "/{library}_frag_length_histogram.pdf", library = ALL_LIBRARIES),
-        analysis_dir + "/frag_length_distros_long.tsv",
-        analysis_dir + "/frag_length_distros_wide.tsv",
-        analysis_dir + "/frag_length_distros_long_filtered.tsv",
-        analysis_dir + "/frag_length_distros_wide_filtered.tsv",
-        expand(medians_dir + "/{library}_med_frag_window_lengths.tsv", library = ALL_LIBRARIES),
-        analysis_dir + "/med_frag_window_lengths.tsv",
         expand(gc_distros_dir + "/{library}_gc_distro.csv", library = ALL_LIBRARIES),
         gc_distros_dir + "/healthy_med_gc_distro.rds",
         expand(beds_dir + "/{library}_weights.bed", library = ALL_LIBRARIES),
@@ -93,173 +70,6 @@ rule all:
         analysis_dir + "/frag_counts_by_len_class.tsv",
         analysis_dir + "/ratios.tsv",
         analysis_dir + "/arm_z.tsv"
-
-# Make 5mb window bed file with GC content from fasta file
-rule make_gc_window_bed:
-    benchmark: benchdir + "/make_gc_window_bed.benchmark.txt",
-    input:
-        fasta = genome_fasta
-    log: logdir + "/make_gc_window_bed.log",
-    output: refdir + "/gc5mb.bed",
-    params:
-        script = scriptdir + "/make_gc_window_bed.sh",
-        window_size = window_size,
-    shell:
-        """
-        {params.script} \
-        {input.fasta} \
-        {params.window_size} \
-        {output} &> {log}
-        """
-
-# Make GC and mappability restricted bins
-rule make_keep_bed:
-    benchmark: benchdir + "/make_keep_bed.benchmark.txt",
-    input:
-        gc_window_bed = refdir + "/gc5mb.bed",
-        blklist = blklist,
-    log: logdir + "/make_keep_bed.log",
-    output: refdir + "/keep_5mb.bed",
-    params:
-        script = scriptdir + "/make_keep_bed.sh",
-    shell:
-        """
-        {params.script} \
-        {input.gc_window_bed} \
-        {input.blklist} \
-        {output} &> {log}
-        """
-
-# Filter bams
-rule filter_bams:
-    benchmark: benchdir + "/{library}_filter_bams.benchmark.txt",
-    input: bams_dir + "/{library}.bam",
-    log: logdir + "/{library}_filter_bams.log",
-    output: bams_dir + "/{library}_filt.bam",
-    params:
-        script = scriptdir + "/filter_bam.sh",
-        # script = scriptdir + "/filter_bam_autosomes.sh",      # To filter to only autosomes
-        threads = threads,
-        max_filter_length = max_filter_length,
-    shell:
-        """
-        {params.script} \
-        {input} \
-        {params.threads} \
-        {params.max_filter_length} \
-        {output} &> {log}
-        """
-
-# Make bedfiles from filtered bams
-rule bam_to_bed:
-    benchmark: benchdir + "/{library}_bam_to_bed.benchmark.txt",
-    input: bams_dir + "/{library}_filt.bam",
-    log: logdir + "/{library}_bam_to_bed.log",
-    output: beds_dir + "/{library}_frag.bed",
-    params:
-        fasta = genome_fasta,
-        script = scriptdir + "/bam_to_bed.sh",
-        threads = threads,
-    shell:
-        """
-        {params.script} \
-	    {input} \
-        {params.fasta} \
-        {params.threads} \
-        {output} &> {log}
-        """
-
-# Generate fragment length distributions
-rule frag_length_distro:
-    benchmark: benchdir + "/{library}_frag_length_distro.benchmark.txt",
-    input: bams_dir + "/{library}_filt.bam",
-    log: logdir + "/{library}_frag_length_distro.log",
-    output: 
-        metrics = length_distros_dir + "/{library}_frag_length_distro.tsv",
-        histogram = length_distros_dir + "/{library}_frag_length_histogram.pdf",
-    params:
-        script = scriptdir + "/frag_length_distro_from_bam.sh",
-        max_length = max_filter_length,
-        outdir = length_distros_dir,
-    shell:
-        """
-        {params.script} \
-        {params.outdir} \
-        {input} \
-        {output.metrics} \
-        {output.histogram} \
-        {params.max_length} \
-        &> {log}
-        """
-
-# Merge fragment length distribution files
-rule frag_length_distro_merge:
-    benchmark: benchdir + "/frag_length_distro_merge.benchmark.txt",
-    input: expand(length_distros_dir + "/{library}_frag_length_distro.tsv", library = ALL_LIBRARIES),
-    log: logdir + "/frag_length_distro_merge.log",
-    output: 
-        long = analysis_dir + "/frag_length_distros_long.tsv",
-        wide = analysis_dir + "/frag_length_distros_wide.tsv",
-        long_filtered = analysis_dir + "/frag_length_distros_long_filtered.tsv",
-        wide_filtered = analysis_dir + "/frag_length_distros_wide_filtered.tsv",
-    params:
-        script = scriptdir + "/frag_length_distro_merge.R",
-        frag_length_low = frag_length_low,
-        frag_length_high = frag_length_high,
-        threads = threads,
-    shell:
-        """
-        Rscript {params.script} \
-        "{input}" \
-        {output.long} \
-        {output.wide} \
-        {output.long_filtered} \
-        {output.wide_filtered} \
-        {params.frag_length_low} \
-        {params.frag_length_high} \
-        {params.threads} \
-        {log} &> {log}
-        """
-# Calculate median window lengths for each library
-rule med_frag_window_lengths:
-    benchmark: benchdir + "/{library}_med_frag_window_lengths.benchmark.txt",
-    input: 
-        frag_bed = beds_dir + "/{library}_frag.bed",
-        keep_bed = refdir + "/keep_5mb.bed",
-    log: logdir + "/{library}_med_frag_window_lengths.log",
-    output: medians_dir + "/{library}_med_frag_window_lengths.tsv",
-    params:
-        script = scriptdir + "/med_frag_window_lengths.R",
-        frag_length_low = frag_length_low,
-        frag_length_high = frag_length_high,
-        threads = threads,
-    shell:
-        """
-        Rscript {params.script} \
-        {input.frag_bed} \
-        {input.keep_bed} \
-        {params.frag_length_low} \
-        {params.frag_length_high} \
-        {params.threads} \
-        {output} \
-        {log} &> {log}
-        """
-
-# Combine median window lengths for all libraries into one file
-rule median_merge:
-    benchmark: benchdir + "/median_merge.benchmark.txt",
-    input: expand(medians_dir + "/{library}_med_frag_window_lengths.tsv", library = ALL_LIBRARIES),
-    log: logdir + "/median_merge.log",
-    output: analysis_dir + "/med_frag_window_lengths.tsv",
-    params:
-        medians_dir = medians_dir,
-        script = scriptdir + "/median_merge.sh",
-    shell:
-        """
-        {params.script} \
-        {params.medians_dir} \
-        {output} &> {log}
-        """
 
 # Make GC distributions
 rule gc_distro:
@@ -280,7 +90,8 @@ rule gc_distro:
         {params.frag_length_low} \
         {params.frag_length_high} \
         {params.threads} \
-        {log} &> {log}
+        {log} \
+        > {log} 2>&1
         """
 
 # Make healthy GC distributions summary file
@@ -296,7 +107,7 @@ rule healthy_gc:
         Rscript {params.script} \
         "{input}" \
         {output} \
-        {log} &> {log}
+        {log} > {log} 2>&1
         """
 
 # Add weights to fragments to normalize for library size and GC bias and split into short and long fragments
@@ -328,7 +139,7 @@ rule frag_weighting_and_size_split:
         {output.weights_bed} \
         {output.short} \
         {output.long} \
-        {log} &> {log}
+        {log} > {log} 2>&1
         """
 
 # Find "counts" (sum of weights) of short and long fragments in each 5mb window
@@ -338,7 +149,7 @@ rule frag_window_count:
         weights_bed = beds_dir + "/{library}_weights.bed",
         short = beds_dir + "/{library}_short_weights.bed",
         long = beds_dir + "/{library}_long_weights.bed",
-        keep_bed = refdir + "/keep_5mb.bed",
+        keep_bed = keep_bed,
     log: logdir + "/{library}_frag_window_count.log",
     output:
         total_counts = counts_dir + "/{library}_count_total.tsv",
@@ -354,19 +165,19 @@ rule frag_window_count:
         {input.keep_bed} \
         {output.total_counts} \
         {params.threads} \
-        {log} &>> {log}
+        {log} >> {log} 2>&1
         Rscript {params.script} \
         {input.short} \
         {input.keep_bed} \
         {output.short} \
         {params.threads} \
-        {log} &>> {log}
+        {log} >> {log} 2>&1
         Rscript {params.script} \
         {input.long} \
         {input.keep_bed} \
         {output.long} \
         {params.threads} \
-        {log} &>> {log}
+        {log} >> {log} 2>&1
         """
 
 # Merge fragment counts files from all libraries
@@ -389,7 +200,7 @@ rule count_merge:
         {output.frag_counts} \
         {output.frag_counts_by_len_class} \
         {params.threads} \
-        {log} &> {log}
+        {log} >> {log} 2>&1
         """
 
 # Calculate short:long fragment ratios and center at 0
@@ -405,7 +216,7 @@ rule make_ratios:
         Rscript {params.script} \
         {input} \
         {output} \
-        {log} &> {log}
+        {log} > {log} 2>&1
         """
 
 # Calculate chromosome arm fragment count z-scores
@@ -427,5 +238,5 @@ rule arm_z_scores:
         {input.libraries} \
         {input.frag_counts} \
         {output} \
-        {log} &> {log}
+        {log} > {log} 2>&1
         """

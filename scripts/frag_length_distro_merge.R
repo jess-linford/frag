@@ -32,7 +32,8 @@ on.exit({
 # Function to read and process each file
 read_and_process <- function(file) {
   df <- fread(file, col.names = c("length", "count"))
-  df[, library := sub("_frag_size_distro\\.tsv$", "", basename(file))]  # Extract the part before "_frag_size_distro.tsv"
+  # Extract the library name (the part of the filename before "_frag_length_distro.tsv")
+  df[, library := sub("_frag_length_distro\\.tsv$", "", basename(file))]
   return(df)
 }
 
