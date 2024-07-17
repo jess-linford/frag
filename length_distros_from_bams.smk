@@ -10,7 +10,7 @@ frag_length_high = 220
 
 # Directory values
 # Modify parentdir, bams_dir, and length_distros_dir as needed
-parentdir               = "/aclm350-zpool1/jlinford/frag"
+parentdir               = "/aclm350-zpool1/jlinford/test/frag_test"
 analysis_dir            = parentdir + "/analysis"
 bams_dir                = parentdir + "/analysis/bams"
 length_distros_dir      = parentdir + "/analysis/length_distros"
@@ -19,10 +19,17 @@ logdir                  = parentdir + "/logs"
 refdir                  = parentdir + "/ref"
 scriptdir               = parentdir + "/scripts"
 
+# Input files
+libraries_file = refdir + "/libraries.tsv"
+
+# Read libraries column and extract library column as list
+libraries = pd.read_table(libraries_file)
+ALL_LIBRARIES = libraries['library'].tolist()
+
 rule all:
     input:
-        expand(length_distros_dir + "/{library}_frag_length_distro.tsv", library = wildcards.library),
-        expand(length_distros_dir + "/{library}_frag_length_histogram.pdf", library = wildcards.library),
+        expand(length_distros_dir + "/{library}_frag_length_distro.tsv", library = ALL_LIBRARIES),
+        expand(length_distros_dir + "/{library}_frag_length_histogram.pdf", library = ALL_LIBRARIES),
         analysis_dir + "/frag_length_distros_long.tsv",
         analysis_dir + "/frag_length_distros_wide.tsv",
         analysis_dir + "/frag_length_distros_long_filtered.tsv",
@@ -54,7 +61,7 @@ rule frag_length_distro:
 # Merge fragment length distribution files
 rule frag_length_distro_merge:
     benchmark: benchdir + "/frag_length_distro_merge.benchmark.txt",
-    input: expand(length_distros_dir + "/{library}_frag_length_distro.tsv", library = wildcards.library),
+    input: expand(length_distros_dir + "/{library}_frag_length_distro.tsv", library = ALL_LIBRARIES),
     log: logdir + "/frag_length_distro_merge.log",
     output: 
         long = analysis_dir + "/frag_length_distros_long.tsv",

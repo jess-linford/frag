@@ -37,6 +37,6 @@ setorder(length_table, len, count)
 
 # Select and write the required columns
 cat("Writing fragment length distribution table to file...\n")
-fwrite(length_table[, .(len, count)], file = length_distro_file, row.names = FALSE)
+fwrite(length_table[, .(len, count)], file = length_distro_file, row.names = FALSE, sep = "\t")
 
 cat("Script completed successfully\n")

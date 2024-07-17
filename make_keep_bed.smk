@@ -5,7 +5,7 @@ import numpy as np
 window_size = 5000000
 
 # Directory values
-parentdir               = "/aclm350-zpool1/jlinford/frag"
+parentdir               = "/aclm350-zpool1/jlinford/test/frag_test"
 benchdir                = parentdir + "/benchmark"
 logdir                  = parentdir + "/logs"
 refdir                  = parentdir + "/ref"

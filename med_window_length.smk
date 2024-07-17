@@ -4,11 +4,11 @@ import numpy as np
 # Parameters
 threads = 5
 # Fragment length range
-frag_length_low = 80
-frag_length_high = 220
+frag_length_low = 30
+frag_length_high = 500
 
 # Directory values
-parentdir               = "/aclm350-zpool1/jlinford/frag"
+parentdir               = "/aclm350-zpool1/jlinford/test/frag_test"
 analysis_dir            = parentdir + "/analysis"
 beds_dir                = parentdir + "/analysis/beds"
 medians_dir             = parentdir + "/analysis/medians"
@@ -19,10 +19,15 @@ scriptdir               = parentdir + "/scripts"
 
 # Input files
 keep_bed = refdir + "/keep_5mb.bed"
+libraries_file = refdir + "/libraries.tsv"
+
+# Read libraries column and extract library column as list
+libraries = pd.read_table(libraries_file)
+ALL_LIBRARIES = libraries['library'].tolist()
 
 rule all:
     input:
-        expand(medians_dir + "/{library}_med_frag_window_lengths.tsv", library = wildcards.library),
+        expand(medians_dir + "/{library}_med_frag_window_lengths.tsv", library = ALL_LIBRARIES),
         analysis_dir + "/med_frag_window_lengths.tsv"
 
 # Calculate median window lengths for each library
@@ -54,7 +59,7 @@ rule med_frag_window_lengths:
 # Combine median window lengths for all libraries into one file
 rule median_merge:
     benchmark: benchdir + "/median_merge.benchmark.txt",
-    input: expand(medians_dir + "/{library}_med_frag_window_lengths.tsv", library = wildcards.library),
+    input: expand(medians_dir + "/{library}_med_frag_window_lengths.tsv", library = ALL_LIBRARIES),
     log: logdir + "/median_merge.log",
     output: analysis_dir + "/med_frag_window_lengths.tsv",
     params:

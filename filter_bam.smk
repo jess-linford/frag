@@ -6,24 +6,37 @@ threads = 5
 max_filter_length = 1000
 
 # Directory values
-# Modify parentdir, inputdir, and outputdir as needed
-parentdir               = "/aclm350-zpool1/jlinford/frag"
+parentdir               = "/aclm350-zpool1/jlinford/test/frag_test"
+bams_dir                = parentdir + "/analysis/bams"
 benchdir                = parentdir + "/benchmark"
 logdir                  = parentdir + "/logs"
+refdir                  = parentdir + "/ref"
 scriptdir               = parentdir + "/scripts"
-inputdir                = "/path/to/input/bams"
-outputdir               = "/path/to/output/bams"
+
+libraries_file = refdir + "/libraries.tsv"
+
+# Read libraries column and extract library column as list
+libraries = pd.read_table(libraries_file)
+ALL_LIBRARIES = libraries['library'].tolist()
+
+rule all:
+    input:
+        expand(bams_dir + "/{library}_filt.bam", library = ALL_LIBRARIES)
 
 # Filter bams
-# Make sure naming pattern in input rule matches the naming pattern of the input files
+# Choose which script to use based on what filtering you want to do
 rule filter_bams:
     benchmark: benchdir + "/{library}_filter_bams.benchmark.txt",
-    input: inputdir + "/{library}.bam",
+    input: bams_dir + "/{library}.bam",
     log: logdir + "/{library}_filter_bams.log",
-    output: outputdir + "/{library}_filt.bam",
+    output: bams_dir + "/{library}_filt.bam",
     params:
+        # Filter out duplicates, unmapped reads, low-quality reads, and reads <= max_filter_length
         script = scriptdir + "/filter_bam.sh",
-        # script = scriptdir + "/filter_bam_autosomes.sh",      # To filter to only autosomes
+        # # Filter to only autosomes
+        # script = scriptdir + "/filter_bam_autosomes.sh", 
+        # # Filter by size only
+        # script = scriptdir + "/size_filter_bam.sh",
         threads = threads,
         max_filter_length = max_filter_length,
     shell:
@@ -34,3 +47,4 @@ rule filter_bams:
         {params.max_filter_length} \
         {output} &> {log}
         """
+        

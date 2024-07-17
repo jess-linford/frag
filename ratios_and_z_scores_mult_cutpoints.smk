@@ -4,12 +4,12 @@ import numpy as np
 # Parameters
 threads = 5
 # Fragment length definitions used for short and long fragments (low to cutpoint and cutpoint to high)
-frag_length_low = 80
-frag_length_high = 220
-cutpoint = 150
+frag_length_low = 30
+frag_length_high = 130
+cutpoints = [90, 100]
 
 # Directory values
-parentdir               = "/aclm350-zpool1/jlinford/frag"
+parentdir               = "/aclm350-zpool1/jlinford/test/frag_test"
 analysis_dir            = parentdir + "/analysis"
 beds_dir                = parentdir + "/analysis/beds"
 counts_dir              = parentdir + "/analysis/counts"
@@ -21,40 +21,34 @@ scriptdir               = parentdir + "/scripts"
 
 # Input files
 keep_bed = refdir + "/keep_5mb.bed"
-
 # Libraries file is a tab-separated file that must include at least the following columns: library, file(bam), and cohort.
-# Uncomment line 62 and comment out lines 52 and 65-68 and uncomment line 62 as needed if you don't want to exclude serial samples or duplicate healthy libraries
+# Toggle commenting out or including lines 40, 45, and 48-51 depending on which libraries you want to include.
 libraries_file = refdir + "/libraries.tsv"
 cytobands = refdir + "/cytoBand.txt"
 
 # Setup sample name index as a python dictionary
 libraries = pd.read_table(libraries_file)
 
+# Ensure readable bams
 readable = []
 for x in libraries.file:
     readable.append(os.access(x, os.R_OK))
-# Ensure readable bams
 libraries['readable'] = readable
 libraries = libraries[libraries.readable == True]
 
-# To exclude serial samples:
-libraries = libraries[libraries.serial == 0]
+# # To exclude serial samples:
+# libraries = libraries[libraries.serial == 0]
 
-# Make the dictionary
-library_indict = libraries["library"].tolist()
-file_indict = libraries["file"].tolist()
-lib_dict = dict(zip(library_indict, file_indict))
-
-ALL_LIBRARIES = list(lib_dict.keys())
+ALL_LIBRARIES = libraries['library'].tolist()
 
 # Make a list of healthy libraries if you don't care about duplicates
-# HEALTHY_LIBRARIES = libraries[libraries['cohort'] == 'healthy']['library'].tolist()
+HEALTHY_LIBRARIES = libraries[libraries['cohort'] == 'healthy']['library'].tolist()
 
-# To exclude duplicate healthy libraries run in multiple batches:
-HEALTHY_LIBRARIES = libraries[
-    (libraries['cohort'] == 'healthy') & 
-    ((libraries['duplicate'] == 0) | ((libraries['duplicate'] == 1) & (libraries['batch'] != 1)))
-]['library'].tolist()
+# # To exclude duplicate healthy libraries run in multiple batches:
+# HEALTHY_LIBRARIES = libraries[
+#     (libraries['cohort'] == 'healthy') & 
+#     ((libraries['duplicate'] == 0) | ((libraries['duplicate'] == 1) & (libraries['batch'] != 1)))
+# ]['library'].tolist()
 
 rule all:
     input:

@@ -4,7 +4,6 @@
 #                                                                              #
 #########1#########2#########3#########4#########5#########6#########7#########8
 import pandas as pd
-import re
 import numpy as np
 
 # Parameters
@@ -17,7 +16,7 @@ frag_length_high = 220
 cutpoint = 150
 
 # Directory values
-parentdir               = "/aclm350-zpool1/jlinford/frag"
+parentdir               = "/aclm350-zpool1/jlinford/test/frag_test"
 analysis_dir            = parentdir + "/analysis"
 bams_dir                = parentdir + "/analysis/bams"
 beds_dir                = parentdir + "/analysis/beds"
@@ -34,38 +33,33 @@ scriptdir               = parentdir + "/scripts"
 genome_fasta = refdir + "/GRCh38.p13.genome.fa"
 blklist = refdir + "/hg38-blacklist.v2.bed.gz"
 # Libraries file is a tab-separated file that must include at least the following columns: library, file(bam), and cohort.
-# Uncomment line 62 and comment out lines 52 and 65-68 and uncomment line 62 as needed if you don't want to exclude serial samples or duplicate healthy libraries
+# Toggle commenting out or including lines 51, 56, and 59-62 depending on which libraries you want to include.
 libraries_file = refdir + "/libraries.tsv"
 cytobands = refdir + "/cytoBand.txt"
 
 # Setup sample name index as a python dictionary
 libraries = pd.read_table(libraries_file)
 
+# Ensure readable bams
 readable = []
 for x in libraries.file:
     readable.append(os.access(x, os.R_OK))
-# Ensure readable bams
 libraries['readable'] = readable
 libraries = libraries[libraries.readable == True]
 
-# To exclude serial samples:
-libraries = libraries[libraries.serial == 0]
+# # To exclude serial samples:
+# libraries = libraries[libraries.serial == 0]
 
-# Make the dictionary
-library_indict = libraries["library"].tolist()
-file_indict = libraries["file"].tolist()
-lib_dict = dict(zip(library_indict, file_indict))
-
-ALL_LIBRARIES = list(lib_dict.keys())
+ALL_LIBRARIES = libraries['library'].tolist()
 
 # Make a list of healthy libraries if you don't care about duplicates
-# HEALTHY_LIBRARIES = libraries[libraries['cohort'] == 'healthy']['library'].tolist()
+HEALTHY_LIBRARIES = libraries[libraries['cohort'] == 'healthy']['library'].tolist()
 
-# To exclude duplicate healthy libraries run in multiple batches:
-HEALTHY_LIBRARIES = libraries[
-    (libraries['cohort'] == 'healthy') & 
-    ((libraries['duplicate'] == 0) | ((libraries['duplicate'] == 1) & (libraries['batch'] != 1)))
-]['library'].tolist()
+# # To exclude duplicate healthy libraries run in multiple batches:
+# HEALTHY_LIBRARIES = libraries[
+#     (libraries['cohort'] == 'healthy') & 
+#     ((libraries['duplicate'] == 0) | ((libraries['duplicate'] == 1) & (libraries['batch'] != 1)))
+# ]['library'].tolist()
 
 rule all:
     input:
@@ -74,7 +68,6 @@ rule all:
         expand(bams_dir + "/{library}_filt.bam", library = ALL_LIBRARIES),
         expand(beds_dir + "/{library}_frag.bed", library = ALL_LIBRARIES),
         expand(length_distros_dir + "/{library}_frag_length_distro.tsv", library = ALL_LIBRARIES),
-        expand(length_distros_dir + "/{library}_frag_length_histogram.pdf", library = ALL_LIBRARIES),
         analysis_dir + "/frag_length_distros_long.tsv",
         analysis_dir + "/frag_length_distros_wide.tsv",
         analysis_dir + "/frag_length_distros_long_filtered.tsv",
@@ -172,24 +165,21 @@ rule bam_to_bed:
 # Generate fragment length distributions
 rule frag_length_distro:
     benchmark: benchdir + "/{library}_frag_length_distro.benchmark.txt",
-    input: bams_dir + "/{library}_filt.bam",
+    input: beds_dir + "/{library}_frag.bed",
     log: logdir + "/{library}_frag_length_distro.log",
-    output: 
-        metrics = length_distros_dir + "/{library}_frag_length_distro.tsv",
-        histogram = length_distros_dir + "/{library}_frag_length_histogram.pdf",
+    output: length_distros_dir + "/{library}_frag_length_distro.tsv",
     params:
-        script = scriptdir + "/frag_length_distro_from_bam.sh",
+        script = scriptdir + "/frag_length_distro_from_bed.R",
         max_length = max_filter_length,
-        outdir = length_distros_dir,
+        threads = threads,
     shell:
         """
-        {params.script} \
-        {params.outdir} \
+        Rscript {params.script} \
         {input} \
-        {output.metrics} \
-        {output.histogram} \
+        {output} \
         {params.max_length} \
-        &> {log}
+        {params.threads} \
+        {log} &> {log}
         """
 
 # Merge fragment length distribution files
@@ -220,6 +210,7 @@ rule frag_length_distro_merge:
         {params.threads} \
         {log} &> {log}
         """
+
 # Calculate median window lengths for each library
 rule med_frag_window_lengths:
     benchmark: benchdir + "/{library}_med_frag_window_lengths.benchmark.txt",

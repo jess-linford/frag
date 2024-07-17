@@ -47,7 +47,7 @@ concatenated_data <- concatenated_data[, .(library, length, count)]
 
 # Write the concatenated data to the long format file
 cat("Writing concatenated data to file...\n")
-fwrite(concatenated_data, output_file_long)
+fwrite(concatenated_data, output_file_long, sep = "\t")
 
 # Filter the data based on frag_length_low and frag_length_high
 cat("Filtering data to desired fragment length range...\n")
@@ -55,7 +55,7 @@ filtered_data <- concatenated_data[length >= frag_length_low & length <= frag_le
 
 # Write the filtered concatenated data to the long format file
 cat("Writing filtered data to file...\n")
-fwrite(filtered_data, output_file_long_filtered)
+fwrite(filtered_data, output_file_long_filtered, sep = "\t")
 
 # Transform data to wide format
 cat("Transforming data to wide format...\n")
@@ -63,7 +63,7 @@ wide_data <- dcast(concatenated_data, library ~ length, value.var = "count", fil
 
 # Write the wide format data to file
 cat("Writing wide format data to file...\n")
-fwrite(wide_data, output_file_wide)
+fwrite(wide_data, output_file_wide, sep = "\t")
 
 # Transform filtered data to wide format
 cat("Transforming filtered data to wide format...\n")
@@ -71,6 +71,6 @@ wide_data_filtered <- dcast(filtered_data, library ~ length, value.var = "count"
 
 # Write the filtered wide format data to file
 cat("Writing filtered wide format data to file...\n")
-fwrite(wide_data_filtered, output_file_wide_filtered)
+fwrite(wide_data_filtered, output_file_wide_filtered, sep = "\t")
 
 cat("Script completed successfully\n")
