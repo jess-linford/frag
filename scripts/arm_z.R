@@ -41,7 +41,7 @@ libraries <- read_tsv(libraries_file)
 # If you don't care about duplicate healthy libraries, comment out line 44
 cat("Getting list of healthy cohort libraries...\n")
 healthy_libs <- libraries %>% filter(cohort == "healthy") %>% 
-  filter(duplicate == 0 | (duplicate == 1 & batch != 1)) %>%
+  # filter(duplicate == 0 | (duplicate == 1 & batch != 1)) %>%
   pull(library)
 
 # Define non-acrocentric arms and their genomic coordinates

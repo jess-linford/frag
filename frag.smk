@@ -132,13 +132,13 @@ rule filter_bams:
     params:
         script = scriptdir + "/filter_bam.sh",
         # script = scriptdir + "/filter_bam_autosomes.sh",      # To filter to only autosomes
-        threads = threads,
         max_filter_length = max_filter_length,
+    threads: threads,
     shell:
         """
         {params.script} \
         {input} \
-        {params.threads} \
+        {threads} \
         {params.max_filter_length} \
         {output} &> {log}
         """
@@ -152,13 +152,13 @@ rule bam_to_bed:
     params:
         fasta = genome_fasta,
         script = scriptdir + "/bam_to_bed.sh",
-        threads = threads,
+    threads: threads,
     shell:
         """
         {params.script} \
 	    {input} \
         {params.fasta} \
-        {params.threads} \
+        {threads} \
         {output} &> {log}
         """
 
@@ -171,14 +171,14 @@ rule frag_length_distro:
     params:
         script = scriptdir + "/frag_length_distro_from_bed.R",
         max_length = max_filter_length,
-        threads = threads,
+    threads: threads,
     shell:
         """
         Rscript {params.script} \
         {input} \
         {output} \
         {params.max_length} \
-        {params.threads} \
+        {threads} \
         {log} &> {log}
         """
 
@@ -196,7 +196,7 @@ rule frag_length_distro_merge:
         script = scriptdir + "/frag_length_distro_merge.R",
         frag_length_low = frag_length_low,
         frag_length_high = frag_length_high,
-        threads = threads,
+    threads: threads,
     shell:
         """
         Rscript {params.script} \
@@ -207,7 +207,7 @@ rule frag_length_distro_merge:
         {output.wide_filtered} \
         {params.frag_length_low} \
         {params.frag_length_high} \
-        {params.threads} \
+        {threads} \
         {log} &> {log}
         """
 
@@ -223,7 +223,7 @@ rule med_frag_window_lengths:
         script = scriptdir + "/med_frag_window_lengths.R",
         frag_length_low = frag_length_low,
         frag_length_high = frag_length_high,
-        threads = threads,
+    threads: threads,
     shell:
         """
         Rscript {params.script} \
@@ -231,7 +231,7 @@ rule med_frag_window_lengths:
         {input.keep_bed} \
         {params.frag_length_low} \
         {params.frag_length_high} \
-        {params.threads} \
+        {threads} \
         {output} \
         {log} &> {log}
         """
@@ -262,7 +262,7 @@ rule gc_distro:
         script = scriptdir + "/gc_distro.R",
         frag_length_low = frag_length_low,
         frag_length_high = frag_length_high,
-        threads = threads,
+    threads: threads,
     shell:
         """
         Rscript {params.script} \
@@ -270,7 +270,7 @@ rule gc_distro:
         {output} \
         {params.frag_length_low} \
         {params.frag_length_high} \
-        {params.threads} \
+        {threads} \
         {log} &> {log}
         """
 
@@ -303,16 +303,17 @@ rule frag_weighting_and_size_split:
         long = beds_dir + "/{library}_long_weights.bed",
     params:
         script = scriptdir + "/frag_weighting_and_size_split.R",
-        threads = threads,
         frag_length_low = frag_length_low,
         cutpoint = cutpoint,
         frag_length_high = frag_length_high,
+    threads: threads,
+    retries: 5,
     shell:
         """
         Rscript {params.script} \
         {input.healthy_med} \
         {input.frag_bed} \
-        {params.threads} \
+        {threads} \
         {params.frag_length_low} \
         {params.cutpoint} \
         {params.frag_length_high} \
@@ -337,26 +338,27 @@ rule frag_window_count:
         long = counts_dir + "/{library}_count_long.tsv",
     params:
         script = scriptdir + "/frag_window_count.R",
-        threads = threads,
+    threads: threads,
+    retries: 5,
     shell:
         """
         Rscript {params.script} \
         {input.weights_bed} \
         {input.keep_bed} \
         {output.total_counts} \
-        {params.threads} \
+        {threads} \
         {log} &>> {log}
         Rscript {params.script} \
         {input.short} \
         {input.keep_bed} \
         {output.short} \
-        {params.threads} \
+        {threads} \
         {log} &>> {log}
         Rscript {params.script} \
         {input.long} \
         {input.keep_bed} \
         {output.long} \
-        {params.threads} \
+        {threads} \
         {log} &>> {log}
         """
 
@@ -372,14 +374,14 @@ rule count_merge:
         frag_counts_by_len_class = analysis_dir + "/frag_counts_by_len_class.tsv",
     params:
         script = scriptdir + "/count_merge.R",
-        threads = threads,        
+    threads: threads,        
     shell:
         """
         Rscript {params.script} \
         "{input}" \
         {output.frag_counts} \
         {output.frag_counts_by_len_class} \
-        {params.threads} \
+        {threads} \
         {log} &> {log}
         """
 

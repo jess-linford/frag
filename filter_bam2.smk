@@ -3,15 +3,16 @@ import numpy as np
 
 # Parameters
 threads = 5
+min_filter_length = 90
+max_filter_length = 150
 
 # Directory values
-input_dir               = "/acl45d1/ris/Active/work/pradeep_project/After_alignment/Arpit_WGS_batch2"
-output_dir              = "/aclm350-zpool1/jlinford/frag/analysis/bams"
+input_dir               = "/logo2/irfan/Pradeep_irfan_project/Fragmentomics_Prostate/prostate_model_data_bam_dedupped"
+output_dir              = "/aclm350-zpool1/jlinford/ichor/prostate_trimmed"
 script_dir              = "/aclm350-zpool1/jlinford/frag/scripts"
-log_dir                 = "/aclm350-zpool1/jlinford/frag/logs"
 
 # Determine library names from file names
-LIBS, = glob_wildcards(input_dir + "/dedup_Aligned_{lib}.bam")
+LIBS, = glob_wildcards(input_dir + "/{lib}-auto.final.dedup.bam")
 
 rule all:
     input:
@@ -20,18 +21,20 @@ rule all:
 # Filter bams
 # Choose which script to use based on what filtering you want to do
 rule filter_bams:
-    input: input_dir + "/dedup_Aligned_{lib}.bam",
+    input: input_dir + "/{lib}-auto.final.dedup.bam",
     output: output_dir + "/{lib}_filt.bam",
-    log: log_dir + "/{lib}_filter_bams.log",
     params:
-        # Filter out duplicates, unmapped reads, low-quality reads
-        script = script_dir + "/filter_bam_no_size.sh",
+        script = script_dir + "/size_filter_bam2.sh",
         threads = threads,
+        min_filter_length = min_filter_length,
+        max_filter_length = max_filter_length,
     shell:
         """
         {params.script} \
         {input} \
         {params.threads} \
-        {output} &> {log}
+        {params.min_filter_length} \
+        {params.max_filter_length} \
+        {output}
         """
         
