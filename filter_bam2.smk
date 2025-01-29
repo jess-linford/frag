@@ -7,12 +7,12 @@ min_filter_length = 90
 max_filter_length = 150
 
 # Directory values
-input_dir               = "/logo2/irfan/Pradeep_irfan_project/Fragmentomics_Prostate/prostate_model_data_bam_dedupped"
-output_dir              = "/aclm350-zpool1/jlinford/ichor/prostate_trimmed"
+input_dir               = "/logo2/irfan/GBM_project/GBM_batch2/FASTQ/aligned_bams/"
+output_dir              = "/aclm350-zpool1/jlinford/ichor/GBM_trimmed"
 script_dir              = "/aclm350-zpool1/jlinford/frag/scripts"
 
 # Determine library names from file names
-LIBS, = glob_wildcards(input_dir + "/{lib}-auto.final.dedup.bam")
+LIBS, = glob_wildcards(input_dir + "/{lib}.bam")
 
 rule all:
     input:
@@ -21,7 +21,7 @@ rule all:
 # Filter bams
 # Choose which script to use based on what filtering you want to do
 rule filter_bams:
-    input: input_dir + "/{lib}-auto.final.dedup.bam",
+    input: input_dir + "/{lib}.bam",
     output: output_dir + "/{lib}_filt.bam",
     params:
         script = script_dir + "/size_filter_bam2.sh",
