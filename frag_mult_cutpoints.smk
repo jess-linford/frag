@@ -6,36 +6,36 @@
 import pandas as pd
 import numpy as np
 
-# Parameters
-threads = 5
-window_size = 5000000
-max_filter_length = 1000 # Maximum fragment length to keep in bam and bed files
-# Fragment length definitions used for short and long fragments (low to cutpoint and cutpoint to high)
-frag_length_low = 30
-frag_length_high = 130
-cutpoints = [90, 100]
+# Load configuration
+configfile: "config_frag_mult_cutpoints.yaml"
 
-# Directory values
-parentdir               = "/aclm350-zpool1/jlinford/test/frag_test"
-analysis_dir            = parentdir + "/analysis"
-bams_dir                = parentdir + "/analysis/bams"
-beds_dir                = parentdir + "/analysis/beds"
-length_distros_dir      = parentdir + "/analysis/length_distros"
-medians_dir             = parentdir + "/analysis/medians"
-counts_dir              = parentdir + "/analysis/counts"
-gc_distros_dir          = parentdir + "/analysis/gc_distros"
-benchdir                = parentdir + "/benchmark"
-logdir                  = parentdir + "/logs"
-refdir                  = parentdir + "/ref"
-scriptdir               = parentdir + "/scripts"
+# Parameters from config
+threads = config["threads"]
+window_size = config["window_size"]
+max_filter_length = config["max_filter_length"]
+frag_length_low = config["frag_length"]["low"]
+frag_length_high = config["frag_length"]["high"]
+cutpoints = config["frag_length"]["cutpoints"]
 
-# Input files
-genome_fasta = refdir + "/GRCh38.p13.genome.fa"
-blklist = refdir + "/hg38-blacklist.v2.bed.gz"
-# Libraries file is a tab-separated file that must include at least the following columns: library, file(bam), and cohort.
-# Toggle commenting out or including lines 51, 56, and 59-62 depending on which libraries you want to include.
-libraries_file = refdir + "/libraries.tsv"
-cytobands = refdir + "/cytoBand.txt"
+# Directory values from config
+parentdir = config["directories"]["parent"]
+analysis_dir = config["directories"]["analysis"]
+bams_dir = config["directories"]["bams"]
+beds_dir = config["directories"]["beds"]
+length_distros_dir = config["directories"]["length_distros"]
+medians_dir = config["directories"]["medians"]
+counts_dir = config["directories"]["counts"]
+gc_distros_dir = config["directories"]["gc_distros"]
+benchdir = config["directories"]["bench"]
+logdir = config["directories"]["logs"]
+refdir = config["directories"]["ref"]
+scriptdir = config["directories"]["scripts"]
+
+# Reference files from config
+genome_fasta = config["references"]["genome_fasta"]
+blklist = config["references"]["blacklist"]
+libraries_file = config["references"]["libraries_file"]
+cytobands = config["references"]["cytobands"]
 
 # Setup sample name index as a python dictionary
 libraries = pd.read_table(libraries_file)
@@ -451,4 +451,3 @@ rule arm_z_scores:
         {output} \
         {log} &> {log}
         """
-        
