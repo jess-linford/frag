@@ -10,7 +10,7 @@ parentdir               = "/aclm350-zpool1/jlinford/test/frag_test"
 benchdir                = parentdir + "/benchmark"
 logdir                  = parentdir + "/logs"
 refdir                  = parentdir + "/ref"
-scriptdir               = parentdir + "/scripts"
+scriptdir               = "scripts"
 bams_dir                = parentdir + "/analysis/bams"
 beds_dir                = parentdir + "/analysis/beds"
 

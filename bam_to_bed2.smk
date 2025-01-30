@@ -7,7 +7,7 @@ threads = 5
 # Directory values
 input_dir                = "/home/jupyter/data/noah/analysis/bams"
 output_dir               = "/home/jupyter/data/noah/analysis/beds"
-script_dir               = "/home/jupyter/data/noah/scripts"
+script_dir               = "scripts"
 
 # Input files
 genome_fasta = "/home/jupyter/data/noah/ref/GRCh38-DAC-U2AF1.fna"

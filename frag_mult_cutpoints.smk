@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 
 # Load configuration
-configfile: "config_frag_mult_cutpoints.yaml"
+configfile: "config/config_frag_mult_cutpoints.yaml"
 
 # Parameters from config
 threads = config["threads"]
@@ -18,7 +18,6 @@ frag_length_high = config["frag_length"]["high"]
 cutpoints = config["frag_length"]["cutpoints"]
 
 # Directory values from config
-parentdir = config["directories"]["parent"]
 analysis_dir = config["directories"]["analysis"]
 bams_dir = config["directories"]["bams"]
 beds_dir = config["directories"]["beds"]
@@ -29,7 +28,7 @@ gc_distros_dir = config["directories"]["gc_distros"]
 benchdir = config["directories"]["bench"]
 logdir = config["directories"]["logs"]
 refdir = config["directories"]["ref"]
-scriptdir = config["directories"]["scripts"]
+scriptdir = "scripts"
 
 # Reference files from config
 genome_fasta = config["references"]["genome_fasta"]
