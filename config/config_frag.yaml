@@ -6,26 +6,32 @@ max_filter_length: 1000  # Maximum fragment length to keep in bam and bed files
 # Fragment length definitions
 frag_length:
   low: 80
-  high: 220
-  cutpoint: 150
+  high: 200
+  cutpoint: 130
+
+# Name pattern in bam files
+bam_name_pattern: "Sample_{library}.bam"
 
 # Directory structure
 directories:
-  analysis: "/aclm350-zpool1/jlinford/test/frag_test/analysis"
-  bams: "/aclm350-zpool1/jlinford/test/frag_test/analysis/bams"
-  beds: "/aclm350-zpool1/jlinford/test/frag_test/analysis/beds"
-  length_distros: "/aclm350-zpool1/jlinford/test/frag_test/analysis/length_distros"
-  medians: "/aclm350-zpool1/jlinford/test/frag_test/analysis/medians"
-  counts: "/aclm350-zpool1/jlinford/test/frag_test/analysis/counts"
-  gc_distros: "/aclm350-zpool1/jlinford/test/frag_test/analysis/gc_distros"
-  bench: "/aclm350-zpool1/jlinford/test/frag_test/benchmark"
-  logs: "/aclm350-zpool1/jlinford/test/frag_test/logs"
-  ref: "/aclm350-zpool1/jlinford/test/frag_test/ref"
+  analysis: "/aclm350-zpool1/jlinford/gbm/frag/analysis"
+  input_bams: "/logo2/irfan/GBM_project/GBM_batch2/FASTQ/aligned_bams"
+  filtered_bams: "/aclm350-zpool1/jlinford/gbm/frag/analysis/bams"
+  beds: "/aclm350-zpool1/jlinford/gbm/frag/analysis/beds"
+  length_distros: "/aclm350-zpool1/jlinford/gbm/frag/analysis/length_distros"
+  medians: "/aclm350-zpool1/jlinford/gbm/frag/analysis/medians"
+  counts: "/aclm350-zpool1/jlinford/gbm/frag/analysis/counts"
+  gc_distros: "/aclm350-zpool1/jlinford/gbm/frag/analysis/gc_distros"
+  bench: "/aclm350-zpool1/jlinford/gbm/frag/benchmark"
+  logs: "/aclm350-zpool1/jlinford/gbm/frag/logs"
+  ref: "/aclm350-zpool1/jlinford/gbm/frag/ref"
+  scripts: "/aclm350-zpool1/jlinford/frag/scripts"
 
 # Reference files
 references:
   # Libraries file is a tab-separated file that must include at least the following columns: library, file(bam file path), and cohort.
-  libraries_file: "/aclm350-zpool1/jlinford/test/frag_test/ref/libraries.tsv"
-  genome_fasta: "/aclm350-zpool1/jlinford/test/frag_test/ref/GRCh38.p13.genome.fa"
-  blacklist: "/aclm350-zpool1/jlinford/test/frag_test/ref/hg38-blacklist.v2.bed.gz"
-  cytobands: "/aclm350-zpool1/jlinford/test/frag_test/ref/cytoBand.txt"
+  # One of the cohorts must be 'healthy'
+  libraries_file: "/aclm350-zpool1/jlinford/gbm/frag/ref/gbm_libraries.tsv"
+  genome_fasta: "/logo2/irfan/GBM_project/GBM_batch2/reference/GRCh38-DAC-U2AF1.fna"
+  blacklist: "/aclm350-zpool1/jlinford/frag/ref/hg38-blacklist.v2.bed.gz"
+  cytobands: "/aclm350-zpool1/jlinford/frag/ref/cytoBand.txt"

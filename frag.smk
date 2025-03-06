@@ -16,10 +16,12 @@ max_filter_length = config["max_filter_length"]
 frag_length_low = config["frag_length"]["low"]
 frag_length_high = config["frag_length"]["high"]
 cutpoint = config["frag_length"]["cutpoint"]
+bam_name_pattern = config["bam_name_pattern"]
 
 # Directory values from config
 analysis_dir = config["directories"]["analysis"]
-bams_dir = config["directories"]["bams"]
+input_bams_dir = config["directories"]["input_bams"]
+filtered_bams_dir = config["directories"]["filtered_bams"]
 beds_dir = config["directories"]["beds"]
 length_distros_dir = config["directories"]["length_distros"]
 medians_dir = config["directories"]["medians"]
@@ -28,7 +30,7 @@ gc_distros_dir = config["directories"]["gc_distros"]
 benchdir = config["directories"]["bench"]
 logdir = config["directories"]["logs"]
 refdir = config["directories"]["ref"]
-scriptdir = "scripts"
+scriptdir = config["directories"]["scripts"]
 
 # Reference files from config
 genome_fasta = config["references"]["genome_fasta"]
@@ -46,25 +48,16 @@ for x in libraries.file:
 libraries['readable'] = readable
 libraries = libraries[libraries.readable == True]
 
-# # To exclude serial samples:
-# libraries = libraries[libraries.serial == 0]
-
 ALL_LIBRARIES = libraries['library'].tolist()
 
-# Make a list of healthy libraries if you don't care about duplicates
+# Make a list of healthy libraries
 HEALTHY_LIBRARIES = libraries[libraries['cohort'] == 'healthy']['library'].tolist()
-
-# # To exclude duplicate healthy libraries run in multiple batches:
-# HEALTHY_LIBRARIES = libraries[
-#     (libraries['cohort'] == 'healthy') & 
-#     ((libraries['duplicate'] == 0) | ((libraries['duplicate'] == 1) & (libraries['batch'] != 1)))
-# ]['library'].tolist()
 
 rule all:
     input:
         refdir + "/gc5mb.bed",
         refdir + "/keep_5mb.bed",
-        expand(bams_dir + "/{library}_filt.bam", library = ALL_LIBRARIES),
+        expand(filtered_bams_dir + "/{library}_filt.bam", library = ALL_LIBRARIES),
         expand(beds_dir + "/{library}_frag.bed", library = ALL_LIBRARIES),
         expand(length_distros_dir + "/{library}_frag_length_distro.tsv", library = ALL_LIBRARIES),
         analysis_dir + "/frag_length_distros_long.tsv",
@@ -73,7 +66,7 @@ rule all:
         analysis_dir + "/frag_length_distros_wide_filtered.tsv",
         expand(medians_dir + "/{library}_med_frag_window_lengths.tsv", library = ALL_LIBRARIES),
         analysis_dir + "/med_frag_window_lengths.tsv",
-        expand(gc_distros_dir + "/{library}_gc_distro.csv", library = ALL_LIBRARIES),
+        expand(gc_distros_dir + "/{library}_gc_distro.csv", library = HEALTHY_LIBRARIES),
         gc_distros_dir + "/healthy_med_gc_distro.rds",
         expand(beds_dir + "/{library}_weights.bed", library = ALL_LIBRARIES),
         expand(beds_dir + "/{library}_short_weights.bed", library = ALL_LIBRARIES),
@@ -125,9 +118,13 @@ rule make_keep_bed:
 # Filter bams
 rule filter_bams:
     benchmark: benchdir + "/{library}_filter_bams.benchmark.txt",
-    input: bams_dir + "/{library}.bam",
+    input: 
+        lambda wildcards: os.path.join(
+            input_bams_dir,
+            bam_name_pattern.format(library=wildcards.library)
+        ),
     log: logdir + "/{library}_filter_bams.log",
-    output: bams_dir + "/{library}_filt.bam",
+    output: filtered_bams_dir + "/{library}_filt.bam",
     params:
         script = scriptdir + "/filter_bam.sh",
         # script = scriptdir + "/filter_bam_autosomes.sh",      # To filter to only autosomes
@@ -145,7 +142,7 @@ rule filter_bams:
 # Make bedfiles from filtered bams
 rule bam_to_bed:
     benchmark: benchdir + "/{library}_bam_to_bed.benchmark.txt",
-    input: bams_dir + "/{library}_filt.bam",
+    input: filtered_bams_dir + "/{library}_filt.bam",
     log: logdir + "/{library}_bam_to_bed.log",
     output: beds_dir + "/{library}_frag.bed",
     params:
