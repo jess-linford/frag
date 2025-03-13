@@ -50,15 +50,26 @@ cat("Creating distribution dataframe...\n")
 distro <- bed[, .(frag_count = .N), by = gc_strata]
 # Calculate proportion of fragments in each gc_strata value
 distro[, frag_fract := frag_count / sum(frag_count)]
+
+# Create a complete sequence of gc_strata
+complete_gc_strata <- data.table(gc_strata = seq(0, 1, by = 0.01))
+
+# Merge the complete gc_strata with the existing distro
+distro_complete <- merge(complete_gc_strata, distro, by = "gc_strata", all.x = TRUE)
+
+# Fill in missing values with 0 and add library_id where missing
+distro_complete[is.na(frag_count), frag_count := 0]
+distro_complete[is.na(frag_fract), frag_fract := 0]
+
 # Add library id
-distro[, library_id := gsub("_frag\\.bed$", "", basename(bed_file))]
+distro_complete[, library_id := gsub("_frag\\.bed$", "", basename(bed_file))]
 
 # Sort the data by library_id and gc_strata
-setorder(distro, library_id, gc_strata)
-cat("Number of rows in distribution dataframe:", nrow(distro), "\n")
+setorder(distro_complete, library_id, gc_strata)
+cat("Number of rows in complete distribution dataframe:", nrow(distro_complete), "\n")
 
 cat("Writing distribution file...\n")
 # Select and write the required columns
-fwrite(distro[, .(library_id, gc_strata, frag_count, frag_fract)], file = distro_file, row.names = FALSE)
+fwrite(distro_complete[, .(library_id, gc_strata, frag_count, frag_fract)], file = distro_file, row.names = FALSE)
 
 cat("Script completed successfully\n")
