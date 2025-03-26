@@ -189,12 +189,8 @@ rule frag_length_distro_merge:
     output: 
         long = analysis_dir + "/frag_length_distros_long.tsv",
         wide = analysis_dir + "/frag_length_distros_wide.tsv",
-        long_filtered = analysis_dir + "/frag_length_distros_long_filtered.tsv",
-        wide_filtered = analysis_dir + "/frag_length_distros_wide_filtered.tsv",
     params:
         script = scriptdir + "/frag_length_distro_merge.R",
-        frag_length_low = frag_length_low,
-        frag_length_high = frag_length_high,
     threads: threads,
     shell:
         """
@@ -202,10 +198,6 @@ rule frag_length_distro_merge:
         "{input}" \
         {output.long} \
         {output.wide} \
-        {output.long_filtered} \
-        {output.wide_filtered} \
-        {params.frag_length_low} \
-        {params.frag_length_high} \
         {threads} \
         {log} &> {log}
         """

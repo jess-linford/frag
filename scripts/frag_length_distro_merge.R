@@ -5,14 +5,10 @@ args <- commandArgs(trailingOnly = TRUE)
 # args[1] is a space-separated list of fragment count file names. 
 # frag_length_distro_files is a vector of file names.
 frag_length_distro_files <- unlist(strsplit(args[1], " ")) 
-output_file_long <- args[2] #output
-output_file_wide <- args[3] #output
-output_file_long_filtered <- args[4] #output
-output_file_wide_filtered <- args[5] #output
-frag_length_low <- as.integer(args[6]) #parameter
-frag_length_high <- as.integer(args[7]) #parameter
-num_threads <- as.integer(args[8]) #parameter
-log_file <- args[9]
+output_file_long <- args[2] # output long format file
+output_file_wide <- args[3] # output wide format file
+num_threads <- as.integer(args[4]) # parameter threads
+log_file <- args[5]
 
 library(data.table)
 setDTthreads(num_threads)
@@ -49,28 +45,12 @@ concatenated_data <- concatenated_data[, .(library, length, count)]
 cat("Writing concatenated data to file...\n")
 fwrite(concatenated_data, output_file_long, sep = "\t")
 
-# Filter the data based on frag_length_low and frag_length_high
-cat("Filtering data to desired fragment length range...\n")
-filtered_data <- concatenated_data[length >= frag_length_low & length <= frag_length_high]
-
-# Write the filtered concatenated data to the long format file
-cat("Writing filtered data to file...\n")
-fwrite(filtered_data, output_file_long_filtered, sep = "\t")
-
-# Transform data to wide format
+# Transform the data to wide format
 cat("Transforming data to wide format...\n")
 wide_data <- dcast(concatenated_data, library ~ length, value.var = "count", fill = 0)
 
 # Write the wide format data to file
 cat("Writing wide format data to file...\n")
 fwrite(wide_data, output_file_wide, sep = "\t")
-
-# Transform filtered data to wide format
-cat("Transforming filtered data to wide format...\n")
-wide_data_filtered <- dcast(filtered_data, library ~ length, value.var = "count", fill = 0)
-
-# Write the filtered wide format data to file
-cat("Writing filtered wide format data to file...\n")
-fwrite(wide_data_filtered, output_file_wide_filtered, sep = "\t")
 
 cat("Script completed successfully\n")
