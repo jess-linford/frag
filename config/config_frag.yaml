@@ -1,7 +1,7 @@
 # Analysis parameters
 threads: 5
 window_size: 5000000
-max_filter_length: 1000  # Maximum fragment length to keep in bam and bed files
+max_filter_length: 400  # Maximum fragment length to keep in bam and bed files
 
 # Fragment length definitions
 frag_length:
@@ -10,28 +10,28 @@ frag_length:
   cutpoint: 130
 
 # Name pattern in bam files
-bam_name_pattern: "Sample_{library}.bam"
+bam_name_pattern: "{library}.bam"
 
 # Directory structure
 directories:
-  analysis: "/aclm350-zpool1/jlinford/gbm/frag/analysis"
-  input_bams: "/logo2/irfan/GBM_project/GBM_batch2/FASTQ/aligned_bams"
-  filtered_bams: "/aclm350-zpool1/jlinford/gbm/frag/analysis/bams"
-  beds: "/aclm350-zpool1/jlinford/gbm/frag/analysis/beds"
-  length_distros: "/aclm350-zpool1/jlinford/gbm/frag/analysis/length_distros"
-  medians: "/aclm350-zpool1/jlinford/gbm/frag/analysis/medians"
-  counts: "/aclm350-zpool1/jlinford/gbm/frag/analysis/counts"
-  gc_distros: "/aclm350-zpool1/jlinford/gbm/frag/analysis/gc_distros"
-  bench: "/aclm350-zpool1/jlinford/gbm/frag/benchmark"
-  logs: "/aclm350-zpool1/jlinford/gbm/frag/logs"
-  ref: "/aclm350-zpool1/jlinford/gbm/frag/ref"
-  scripts: "/aclm350-zpool1/jlinford/frag/scripts"
+  analysis: "/home/jupyter/ovarian/trimmed_data/frag"
+  input_bams: "/home/jupyter/ovarian/trimmed_data/bams"
+  filtered_bams: "/home/jupyter/ovarian/trimmed_data/frag/bams"
+  beds: "/home/jupyter/ovarian/trimmed_data/frag/beds"
+  length_distros: "/home/jupyter/ovarian/trimmed_data/frag/length_distros"
+  medians: "/home/jupyter/ovarian/trimmed_data/frag/medians"
+  counts: "/home/jupyter/ovarian/trimmed_data/frag/counts"
+  gc_distros: "/home/jupyter/ovarian/trimmed_data/frag/gc_distros"
+  bench: "/home/jupyter/ovarian/trimmed_data/frag/benchmark"
+  logs: "/home/jupyter/ovarian/trimmed_data/frag/logs"
+  ref: "/home/jupyter/ovarian/trimmed_data/frag/ref"
+  scripts: "/home/jupyter/scripts/frag/scripts"
 
 # Reference files
 references:
   # Libraries file is a tab-separated file that must include at least the following columns: library, file(bam file path), and cohort.
   # One of the cohorts must be 'healthy'
-  libraries_file: "/aclm350-zpool1/jlinford/gbm/frag/ref/gbm_libraries.tsv"
-  genome_fasta: "/logo2/irfan/GBM_project/GBM_batch2/reference/GRCh38-DAC-U2AF1.fna"
-  blacklist: "/aclm350-zpool1/jlinford/frag/ref/hg38-blacklist.v2.bed.gz"
-  cytobands: "/aclm350-zpool1/jlinford/frag/ref/cytoBand.txt"
+  libraries_file: "/home/jupyter/ovarian/trimmed_data/frag/ref/ovarian_libraries.tsv"
+  genome_fasta: "/home/jupyter/ovarian/trimmed_data/frag/ref/GRCh38-DAC-U2AF1.fna"
+  blacklist: "/home/jupyter/ovarian/trimmed_data/frag/ref/hg38-blacklist.v2.bed.gz"
+  cytobands: "/home/jupyter/ovarian/trimmed_data/frag/ref/cytoBand.txt"

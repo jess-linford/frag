@@ -62,8 +62,6 @@ rule all:
         expand(length_distros_dir + "/{library}_frag_length_distro.tsv", library = ALL_LIBRARIES),
         analysis_dir + "/frag_length_distros_long.tsv",
         analysis_dir + "/frag_length_distros_wide.tsv",
-        analysis_dir + "/frag_length_distros_long_filtered.tsv",
-        analysis_dir + "/frag_length_distros_wide_filtered.tsv",
         expand(medians_dir + "/{library}_med_frag_window_lengths.tsv", library = ALL_LIBRARIES),
         analysis_dir + "/med_frag_window_lengths.tsv",
         expand(gc_distros_dir + "/{library}_gc_distro.csv", library = HEALTHY_LIBRARIES),
