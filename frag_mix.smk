@@ -174,7 +174,7 @@ rule bam_to_bed:
 #     threads: threads,
 #     shell:
 #         """
-#         /usr/local/bin/Rscript {params.script} \
+#         Rscript {params.script} \
 #         {input} \
 #         {output} \
 #         {params.max_length} \
@@ -199,7 +199,7 @@ rule bam_to_bed:
 #     threads: threads,
 #     shell:
 #         """
-#         /usr/local/bin/Rscript {params.script} \
+#         Rscript {params.script} \
 #         "{input}" \
 #         {output.long} \
 #         {output.wide} \
@@ -226,7 +226,7 @@ rule bam_to_bed:
 #     threads: threads,
 #     shell:
 #         """
-#         /usr/local/bin/Rscript {params.script} \
+#         Rscript {params.script} \
 #         {input.frag_bed} \
 #         {input.keep_bed} \
 #         {params.frag_length_low} \
@@ -265,7 +265,7 @@ rule bam_to_bed:
 #     threads: threads,
 #     shell:
 #         """
-#         /usr/local/bin/Rscript {params.script} \
+#         Rscript {params.script} \
 #         {input} \
 #         {output} \
 #         {params.frag_length_low} \
@@ -284,7 +284,7 @@ rule bam_to_bed:
 #         script = scriptdir + "/healthy_gc.R",
 #     shell:
 #         """
-#         /usr/local/bin/Rscript {params.script} \
+#         Rscript {params.script} \
 #         "{input}" \
 #         {output} \
 #         {log} &> {log}
@@ -310,7 +310,7 @@ rule frag_weighting_and_size_split:
     retries: 5,
     shell:
         """
-        /usr/local/bin/Rscript {params.script} \
+        Rscript {params.script} \
         {input.healthy_med} \
         {input.frag_bed} \
         {threads} \
@@ -342,19 +342,19 @@ rule frag_window_count:
     retries: 5,
     shell:
         """
-        /usr/local/bin/Rscript {params.script} \
+        Rscript {params.script} \
         {input.weights_bed} \
         {input.keep_bed} \
         {output.total_counts} \
         {threads} \
         {log} &>> {log}
-        /usr/local/bin/Rscript {params.script} \
+        Rscript {params.script} \
         {input.short} \
         {input.keep_bed} \
         {output.short} \
         {threads} \
         {log} &>> {log}
-        /usr/local/bin/Rscript {params.script} \
+        Rscript {params.script} \
         {input.long} \
         {input.keep_bed} \
         {output.long} \
@@ -377,7 +377,7 @@ rule count_merge:
     threads: threads,        
     shell:
         """
-        /usr/local/bin/Rscript {params.script} \
+        Rscript {params.script} \
         "{input}" \
         {output.frag_counts} \
         {output.frag_counts_by_len_class} \
@@ -395,7 +395,7 @@ rule make_ratios:
         script = scriptdir + "/make_ratios.R",
     shell:
         """
-        /usr/local/bin/Rscript {params.script} \
+        Rscript {params.script} \
         {input} \
         {output} \
         {log} &> {log}
@@ -415,7 +415,7 @@ rule make_ratios:
 #         script = scriptdir + "/arm_z.R",
 #     shell:
 #         """
-#         /usr/local/bin/Rscript {params.script} \
+#         Rscript {params.script} \
 #         {input.cytobands} \
 #         {input.libraries} \
 #         {input.frag_counts} \
