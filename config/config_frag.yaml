@@ -1,37 +1,37 @@
 # Analysis parameters
 threads: 5
 window_size: 5000000
-max_filter_length: 400  # Maximum fragment length to keep in bam and bed files
+max_filter_length: 1000  # Maximum fragment length to keep in bam and bed files
 
 # Fragment length definitions
 frag_length:
-  low: 80
-  high: 200
-  cutpoint: 130
+  low: 30
+  high: 750
+  cutpoint: 150
 
 # Name pattern in bam files
-bam_name_pattern: "{library}.bam"
+bam_name_pattern: "{library}_aligned_dedup.bam"
 
 # Directory structure
 directories:
-  analysis: "/home/jupyter/ovarian/trimmed_data/frag"
-  input_bams: "/home/jupyter/ovarian/trimmed_data/bams"
-  filtered_bams: "/home/jupyter/ovarian/trimmed_data/frag/bams"
-  beds: "/home/jupyter/ovarian/trimmed_data/frag/beds"
-  length_distros: "/home/jupyter/ovarian/trimmed_data/frag/length_distros"
-  medians: "/home/jupyter/ovarian/trimmed_data/frag/medians"
-  counts: "/home/jupyter/ovarian/trimmed_data/frag/counts"
-  gc_distros: "/home/jupyter/ovarian/trimmed_data/frag/gc_distros"
-  bench: "/home/jupyter/ovarian/trimmed_data/frag/benchmark"
-  logs: "/home/jupyter/ovarian/trimmed_data/frag/logs"
-  ref: "/home/jupyter/ovarian/trimmed_data/frag/ref"
-  scripts: "/home/jupyter/scripts/frag/scripts"
+  analysis: "/mnt/data/urine/analysis"
+  input_bams: "/mnt/data/urine/bams/dedup"
+  filtered_bams: "/mnt/data/urine/bams/filt"
+  beds: "/mnt/data/urine/beds"
+  length_distros: "/mnt/data/urine/length_distros"
+  medians: "/mnt/data/urine/medians"
+  counts: "/mnt/data/urine/counts"
+  gc_distros: "/mnt/data/urine/gc_distros"
+  bench: "/mnt/data/urine/benchmark"
+  logs: "/mnt/data/urine/logs"
+  ref: "/mnt/data/scripts/frag/ref"
+  scripts: "/mnt/data/scripts/frag/scripts"
 
 # Reference files
 references:
   # Libraries file is a tab-separated file that must include at least the following columns: library, file(bam file path), and cohort.
   # One of the cohorts must be 'healthy'
-  libraries_file: "/home/jupyter/ovarian/trimmed_data/frag/ref/ovarian_libraries.tsv"
-  genome_fasta: "/home/jupyter/ovarian/trimmed_data/frag/ref/GRCh38-DAC-U2AF1.fna"
-  blacklist: "/home/jupyter/ovarian/trimmed_data/frag/ref/hg38-blacklist.v2.bed.gz"
-  cytobands: "/home/jupyter/ovarian/trimmed_data/frag/ref/cytoBand.txt"
+  libraries_file: "/mnt/data/scripts/frag/ref/batch3_libraries.txt"
+  genome_fasta: "/mnt/data/scripts/frag/ref/GRCh38.p13.genome.fa"
+  blacklist: "/mnt/data/scripts/frag/ref/hg38-blacklist.v2.bed.gz"
+  cytobands: "/mnt/data/scripts/frag/ref/cytoBand.txt"
