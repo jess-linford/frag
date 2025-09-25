@@ -3,10 +3,12 @@ args <- commandArgs(trailingOnly = TRUE)
 # For single cutpoint pathway, input_file looks like "frag_counts_by_len_class.tsv"
 # For multiple cutpoint pathway, input_file looks like "frag_counts_{cutpoint}.tsv"
 frags_tsv <- args[1] # fragment counts file with all short/long fragment lengths for all libraries
-ratios_tsv <- args[2] # output file
-log_file <- args[3]
+ratios_long_tsv <- args[2] # output file - long format
+ratios_wide_tsv <- args[3] # output file - wide format
+log_file <- args[4]
 
 library(tidyverse)
+options(scipen = 999)
 
 # Open a sink connection to capture all output
 log_conn <- file(log_file, open = "wt")
@@ -39,7 +41,17 @@ ratios <-
   group_by(library) %>%
   mutate(ratio.centered = scale(fract, center = TRUE, scale = FALSE)[, 1])
 
-cat("Writing ratios file...\n")
-write_tsv(ratios, file = ratios_tsv)
+cat("Writing long format ratios file...\n")
+write_tsv(ratios, file = ratios_long_tsv)
+
+# Pivot to wide format for modelling
+cat("Pivoting data to wide format...\n")
+ratios_wide <- ratios %>% 
+  select(-c(fract)) %>% 
+  pivot_wider(names_from = c(chr, start, end), values_from = ratio.centered) %>% 
+  arrange(library)
+
+cat("Writing wide format ratios file...\n")
+write_tsv(ratios_wide, file = ratios_wide_tsv)
 
 cat("Script completed successfully")

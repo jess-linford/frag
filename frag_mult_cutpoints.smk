@@ -15,16 +15,20 @@ window_size = config["window_size"]
 max_filter_length = config["max_filter_length"]
 frag_length_low = config["frag_length"]["low"]
 frag_length_high = config["frag_length"]["high"]
-cutpoints = config["frag_length"]["cutpoints"]
+cutpoint = config["frag_length"]["cutpoint"]
+bam_name_pattern = config["bam_name_pattern"]
+motif_length = config["motif_length"]
 
 # Directory values from config
 analysis_dir = config["directories"]["analysis"]
-bams_dir = config["directories"]["bams"]
+input_bams_dir = config["directories"]["input_bams"]
+filtered_bams_dir = config["directories"]["filtered_bams"]
 beds_dir = config["directories"]["beds"]
 length_distros_dir = config["directories"]["length_distros"]
 medians_dir = config["directories"]["medians"]
 counts_dir = config["directories"]["counts"]
 gc_distros_dir = config["directories"]["gc_distros"]
+end_motifs_dir = config["directories"]["end_motifs"]
 benchdir = config["directories"]["bench"]
 logdir = config["directories"]["logs"]
 refdir = config["directories"]["ref"]
@@ -64,7 +68,7 @@ rule all:
     input:
         refdir + "/gc5mb.bed",
         refdir + "/keep_5mb.bed",
-        expand(bams_dir + "/{library}_filt.bam", library = ALL_LIBRARIES),
+        expand(filtered_bams_dir + "/{library}_filt.bam", library = ALL_LIBRARIES),
         expand(beds_dir + "/{library}_frag.bed", library = ALL_LIBRARIES),
         expand(length_distros_dir + "/{library}_frag_length_distro.tsv", library = ALL_LIBRARIES),
         analysis_dir + "/frag_length_distros_long.tsv",
@@ -72,7 +76,11 @@ rule all:
         analysis_dir + "/frag_length_distros_long_filtered.tsv",
         analysis_dir + "/frag_length_distros_wide_filtered.tsv",
         expand(medians_dir + "/{library}_med_frag_window_lengths.tsv", library = ALL_LIBRARIES),
-        analysis_dir + "/med_frag_window_lengths.tsv",
+        analysis_dir + "/med_frag_window_lengths_long.tsv",
+        analysis_dir + "/med_frag_window_lengths_wide.tsv",
+        expand(end_motifs_dir + "/{lib}_motifs.tsv", lib = ALL_LIBRARIES),
+        analysis_dir + "/motif_counts.tsv",
+        analysis_dir + "/motifs_rel_freq_wide.tsv",
         expand(gc_distros_dir + "/{library}_gc_distro.csv", library = ALL_LIBRARIES),
         gc_distros_dir + "/healthy_med_gc_distro.rds",
         expand(beds_dir + "/{library}_weights.bed", library = ALL_LIBRARIES),
@@ -83,8 +91,10 @@ rule all:
         expand(counts_dir + "/{library}_count_long_{cutpoint}.tsv", library = ALL_LIBRARIES, cutpoint = cutpoints),
         analysis_dir + "/frag_counts.tsv",
         expand(analysis_dir + "/frag_counts_{cutpoint}.tsv", cutpoint = cutpoints),
-        expand(analysis_dir + "/ratios_{cutpoint}.tsv", cutpoint = cutpoints),
-        analysis_dir + "/arm_z.tsv"
+        expand(analysis_dir + "/ratios_{cutpoint}_long.tsv", cutpoint = cutpoints),
+        expand(analysis_dir + "/ratios_{cutpoint}_wide.tsv")
+        analysis_dir + "/armz_long.tsv",
+        analysis_dir + "/armz_wide.tsv"
 
 # Make 5mb window bed file with GC content from fasta file
 rule make_gc_window_bed:
@@ -125,9 +135,13 @@ rule make_keep_bed:
 # Filter bams
 rule filter_bams:
     benchmark: benchdir + "/{library}_filter_bams.benchmark.txt",
-    input: bams_dir + "/{library}.bam",
+    input: 
+        lambda wildcards: os.path.join(
+            input_bams_dir,
+            bam_name_pattern.format(library=wildcards.library)
+        ),
     log: logdir + "/{library}_filter_bams.log",
-    output: bams_dir + "/{library}_filt.bam",
+    output: filtered_bams_dir + "/{library}_filt.bam",
     params:
         script = scriptdir + "/filter_bam.sh",
         # script = scriptdir + "/filter_bam_autosomes.sh",      # To filter to only autosomes
@@ -145,7 +159,7 @@ rule filter_bams:
 # Make bedfiles from filtered bams
 rule bam_to_bed:
     benchmark: benchdir + "/{library}_bam_to_bed.benchmark.txt",
-    input: bams_dir + "/{library}_filt.bam",
+    input: filtered_bams_dir + "/{library}_filt.bam",
     log: logdir + "/{library}_bam_to_bed.log",
     output: beds_dir + "/{library}_frag.bed",
     params:
@@ -232,7 +246,9 @@ rule median_merge:
     benchmark: benchdir + "/median_merge.benchmark.txt",
     input: expand(medians_dir + "/{library}_med_frag_window_lengths.tsv", library = ALL_LIBRARIES),
     log: logdir + "/median_merge.log",
-    output: analysis_dir + "/med_frag_window_lengths.tsv",
+    output: 
+        medians_long = analysis_dir + "/med_frag_window_lengths_long.tsv",
+        medians_wide = analysis_dir + "/med_frag_window_lengths_wide.tsv"
     params:
         medians_dir = medians_dir,
         script = scriptdir + "/median_merge.sh",
@@ -240,7 +256,51 @@ rule median_merge:
         """
         {params.script} \
         {params.medians_dir} \
-        {output} &> {log}
+        {output.medians_long} \
+        {output.medians_wide} &> {log}
+        """
+
+# Create end motif files from filtered bams
+rule process_motifs:
+    input:
+        filtered_bams_dir + "/{lib}_filt.bam",
+    output:
+        end_motifs_dir + "/{lib}_motifs.tsv",
+    params:
+        script = scriptdir + "/process_motifs.sh",
+        fasta = genome_fasta,
+        motif_length = motif_length,
+    threads: threads,
+    shell:
+        """
+        {params.script} \
+        {input} \
+        {params.fasta} \
+        {params.motif_length} \
+        {threads} \
+        {output}
+        """
+
+# Aggregate motif files into count matrix and relative frequency matrix
+rule count_motifs:
+    input:
+        expand(end_motifs_dir + "/{lib}_motifs.tsv", lib = ALL_LIBRARIES),
+    output:
+        counts  = analysis_dir + "/motif_counts.tsv",
+        relfreq = analysis_dir + "/motifs_rel_freq_wide.tsv"
+    params:
+        script = scriptdir + "/motif_frequency_counter_efficient.py",
+        input_dir = end_motifs_dir,
+        motif_length = motif_length,
+        output_dir = analysis_dir,
+    threads: threads,
+    shell:
+        """
+        python {params.script} \
+        {params.input_dir} \
+        {params.motif_length} \
+        {threads} \
+        {params.output_dir}
         """
 
 # Make GC distributions
@@ -411,13 +471,17 @@ rule make_ratios:
     input: analysis_dir + "/frag_counts_{cutpoint}.tsv",
     log: logdir + "/make_ratios_{cutpoint}.log",
     output: analysis_dir + "/ratios_{cutpoint}.tsv",
+    output: 
+        ratios_long = analysis_dir + "/ratios_{cutpoint}_long.tsv",
+        ratios_wide = analysis_dir + "/ratios_{cutpoint}_wide.tsv"
     params:
         script = scriptdir + "/make_ratios.R",
     shell:
         """
         Rscript {params.script} \
         {input} \
-        {output} \
+        {output.ratios_long} \
+        {output.ratios_wide} \
         {log} &> {log}
         """
 
@@ -430,7 +494,9 @@ rule arm_z_scores:
         cytobands = cytobands,
         libraries = libraries_file,
     log: logdir + "/arm_z_scores.log",
-    output: analysis_dir + "/arm_z.tsv",
+    output: 
+        armz_long = analysis_dir + "/armz_long.tsv",
+        armz_wide = analysis_dir = "/armz_wide.tsv"
     params: 
         script = scriptdir + "/arm_z.R",
     shell:
@@ -439,6 +505,7 @@ rule arm_z_scores:
         {input.cytobands} \
         {input.libraries} \
         {input.frag_counts} \
-        {output} \
+        {output.armz_long} \
+        {output.armz_wide} \
         {log} &> {log}
         """

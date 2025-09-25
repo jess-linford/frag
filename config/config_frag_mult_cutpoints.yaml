@@ -9,22 +9,33 @@ frag_length:
   high: 130
   cutpoints: [90, 100]  # List of cutpoints to use for short/long fragment analysis
 
+# End motif parameters
+motif_length: 4  # Length of end motifs to analyze
+
+# Name pattern in bam files
+bam_name_pattern: "{library}_aligned_dedup.bam"
+
 # Directory structure
 directories:
-  analysis: "/aclm350-zpool1/jlinford/test/frag_test/analysis"
-  bams: "/aclm350-zpool1/jlinford/test/frag_test/analysis/bams"
-  beds: "/aclm350-zpool1/jlinford/test/frag_test/analysis/beds"
-  length_distros: "/aclm350-zpool1/jlinford/test/frag_test/analysis/length_distros"
-  medians: "/aclm350-zpool1/jlinford/test/frag_test/analysis/medians"
-  counts: "/aclm350-zpool1/jlinford/test/frag_test/analysis/counts"
-  gc_distros: "/aclm350-zpool1/jlinford/test/frag_test/analysis/gc_distros"
-  bench: "/aclm350-zpool1/jlinford/test/frag_test/benchmark"
-  logs: "/aclm350-zpool1/jlinford/test/frag_test/logs"
-  ref: "/aclm350-zpool1/jlinford/test/frag_test/ref"
+  analysis: "/mnt/data/urine/analysis"
+  input_bams: "/mnt/data/urine/bams/dedup"
+  filtered_bams: "/mnt/data/urine/bams/filt"
+  beds: "/mnt/data/urine/beds"
+  length_distros: "/mnt/data/urine/length_distros"
+  medians: "/mnt/data/urine/medians"
+  counts: "/mnt/data/urine/counts"
+  gc_distros: "/mnt/data/urine/gc_distros"
+  end_motifs: "/mnt/data/urine/end_motifs"
+  bench: "/mnt/data/urine/benchmark"
+  logs: "/mnt/data/urine/logs"
+  ref: "/mnt/data/scripts/frag/ref"
+  scripts: "/mnt/data/scripts/frag/scripts"
 
 # Reference files
 references:
-  libraries_file: "/aclm350-zpool1/jlinford/test/frag_test/ref/libraries.tsv"
-  genome_fasta: "/aclm350-zpool1/jlinford/test/frag_test/ref/GRCh38.p13.genome.fa"
-  blacklist: "/aclm350-zpool1/jlinford/test/frag_test/ref/hg38-blacklist.v2.bed.gz"
-  cytobands: "/aclm350-zpool1/jlinford/test/frag_test/ref/cytoBand.txt"
+  # Libraries file is a tab-separated file that must include at least the following columns: library, file(bam file path), and cohort.
+  # One of the cohorts must be 'healthy'
+  libraries_file: "/mnt/data/scripts/frag/ref/libraries.txt"
+  genome_fasta: "/mnt/data/scripts/frag/ref/GRCh38.p13.genome.fa"
+  blacklist: "/mnt/data/scripts/frag/ref/hg38-blacklist.v2.bed.gz"
+  cytobands: "/mnt/data/scripts/frag/ref/cytoBand.txt"

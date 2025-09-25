@@ -65,10 +65,11 @@ rule all:
         analysis_dir + "/frag_length_distros_long.tsv",
         analysis_dir + "/frag_length_distros_wide.tsv",
         expand(medians_dir + "/{library}_med_frag_window_lengths.tsv", library = ALL_LIBRARIES),
-        analysis_dir + "/med_frag_window_lengths.tsv",
-        expand(end_motifs_dir + "/{lib}_motifs.txt", lib = ALL_LIBRARIES),
-        analysis_dir + "/motif_counts.txt",
-        analysis_dir + "/motifs_rel_freq_wide.txt",
+        analysis_dir + "/med_frag_window_lengths_long.tsv",
+        analysis_dir + "/med_frag_window_lengths_wide.tsv",
+        expand(end_motifs_dir + "/{lib}_motifs.tsv", lib = ALL_LIBRARIES),
+        analysis_dir + "/motif_counts.tsv",
+        analysis_dir + "/motifs_rel_freq_wide.tsv",
         expand(gc_distros_dir + "/{library}_gc_distro.csv", library = HEALTHY_LIBRARIES),
         gc_distros_dir + "/healthy_med_gc_distro.rds",
         expand(beds_dir + "/{library}_weights.bed", library = ALL_LIBRARIES),
@@ -79,8 +80,10 @@ rule all:
         expand(counts_dir + "/{library}_count_long.tsv", library = ALL_LIBRARIES),
         analysis_dir + "/frag_counts.tsv",
         analysis_dir + "/frag_counts_by_len_class.tsv",
-        analysis_dir + "/ratios.tsv",
-        analysis_dir + "/arm_z.tsv"
+        analysis_dir + "/ratios_long.tsv",
+        analysis_dir + "/ratios_wide.tsv"
+        analysis_dir + "/armz_long.tsv",
+        analysis_dir = "/armz_wide.tsv"
 
 # Make 5mb window bed file with GC content from fasta file
 rule make_gc_window_bed:
@@ -232,7 +235,9 @@ rule median_merge:
     benchmark: benchdir + "/median_merge.benchmark.txt",
     input: expand(medians_dir + "/{library}_med_frag_window_lengths.tsv", library = ALL_LIBRARIES),
     log: logdir + "/median_merge.log",
-    output: analysis_dir + "/med_frag_window_lengths.tsv",
+    output: 
+        medians_long = analysis_dir + "/med_frag_window_lengths_long.tsv",
+        medians_wide = analysis_dir + "/med_frag_window_lengths_wide.tsv"
     params:
         medians_dir = medians_dir,
         script = scriptdir + "/median_merge.sh",
@@ -240,7 +245,8 @@ rule median_merge:
         """
         {params.script} \
         {params.medians_dir} \
-        {output} &> {log}
+        {output.medians_long} \
+        {output.medians_wide} &> {log}
         """
 
 # Create end motif files from filtered bams
@@ -248,7 +254,7 @@ rule process_motifs:
     input:
         filtered_bams_dir + "/{lib}_filt.bam",
     output:
-        end_motifs_dir + "/{lib}_motifs.txt",
+        end_motifs_dir + "/{lib}_motifs.tsv",
     params:
         script = scriptdir + "/process_motifs.sh",
         fasta = genome_fasta,
@@ -267,10 +273,10 @@ rule process_motifs:
 # Aggregate motif files into count matrix and relative frequency matrix
 rule count_motifs:
     input:
-        expand(end_motifs_dir + "/{lib}_motifs.txt", lib = ALL_LIBRARIES),
+        expand(end_motifs_dir + "/{lib}_motifs.tsv", lib = ALL_LIBRARIES),
     output:
-        counts  = analysis_dir + "/motif_counts.txt",
-        relfreq = analysis_dir + "/motifs_rel_freq_wide.txt"
+        counts  = analysis_dir + "/motif_counts.tsv",
+        relfreq = analysis_dir + "/motifs_rel_freq_wide.tsv"
     params:
         script = scriptdir + "/motif_frequency_counter_efficient.py",
         input_dir = end_motifs_dir,
@@ -424,14 +430,17 @@ rule make_ratios:
     benchmark: benchdir + "/make_ratios.benchmark.txt",
     input: analysis_dir + "/frag_counts_by_len_class.tsv",
     log: logdir + "/make_ratios.log",
-    output: analysis_dir + "/ratios.tsv",
+    output: 
+        ratios_long = analysis_dir + "/ratios_long.tsv",
+        ratios_wide = analysis_dir + "/ratios_wide.tsv"
     params:
         script = scriptdir + "/make_ratios.R",
     shell:
         """
         Rscript {params.script} \
         {input} \
-        {output} \
+        {output.ratios_long} \
+        {output.ratios_wide} \
         {log} &> {log}
         """
 
@@ -444,7 +453,9 @@ rule arm_z_scores:
         cytobands = cytobands,
         libraries = libraries_file,
     log: logdir + "/arm_z_scores.log",
-    output: analysis_dir + "/arm_z.tsv",
+    output: 
+        armz_long = analysis_dir + "/armz_long.tsv",
+        armz_wide = analysis_dir = "/armz_wide.tsv"
     params: 
         script = scriptdir + "/arm_z.R",
     shell:
@@ -453,6 +464,7 @@ rule arm_z_scores:
         {input.cytobands} \
         {input.libraries} \
         {input.frag_counts} \
-        {output} \
+        {output.armz_long} \
+        {output.armz_wide} \
         {log} &> {log}
         """

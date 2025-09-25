@@ -12,8 +12,8 @@ import time
 def create_motif_dataframe(num_nucleotides, file_names):
     nucleotides = 'ACGT'
     motifs = [''.join(p) for p in itertools.product(nucleotides, repeat=num_nucleotides)]
-    # Clean file names by removing "_motifs.txt"
-    cleaned_file_names = [os.path.basename(f).replace("_motifs.txt", "") for f in file_names]
+    # Clean file names by removing "_motifs.tsv"
+    cleaned_file_names = [os.path.basename(f).replace("_motifs.tsv", "") for f in file_names]
     motif_df = pd.DataFrame(0, index=motifs, columns=cleaned_file_names)
     motif_df.index.name = 'motif'  # Name the first column 'motif'
     return motif_df
@@ -28,7 +28,7 @@ def process_file(file_path, motifs_set):
     return counts
 
 def count_motifs_in_files(directory_path, num_nucleotides, num_cores):
-    file_names = [f for f in os.listdir(directory_path) if f.endswith('.txt')]
+    file_names = [f for f in os.listdir(directory_path) if f.endswith('.tsv')]
     motifs = [''.join(p) for p in itertools.product('ACGT', repeat=num_nucleotides)]
     motifs_set = set(motifs)
     motif_df = create_motif_dataframe(num_nucleotides, file_names)
@@ -42,7 +42,7 @@ def count_motifs_in_files(directory_path, num_nucleotides, num_cores):
             file_name = future_to_file[future]
             counts = future.result()
             for motif, count in counts.items():
-                cleaned_file_name = os.path.basename(file_name).replace("_motifs.txt", "")
+                cleaned_file_name = os.path.basename(file_name).replace("_motifs.tsv", "")
                 motif_df.at[motif, cleaned_file_name] = count
 
     return motif_df
@@ -70,8 +70,8 @@ motif_counts_df = count_motifs_in_files(directory_path, motif_length, num_cores)
 end_time = time.time()
 
 # Set the output file names
-output_counts_file = os.path.join(output_directory, "motif_counts.txt")
-output_relfreq_file = os.path.join(output_directory, "motifs_rel_freq_wide.txt")
+output_counts_file = os.path.join(output_directory, "motif_counts.tsv")
+output_relfreq_file = os.path.join(output_directory, "motifs_rel_freq_wide.tsv")
 
 # Save counts (motifs x libraries)
 motif_counts_df.to_csv(output_counts_file, sep='\t')

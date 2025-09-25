@@ -15,16 +15,16 @@ LIBS, = glob_wildcards(filtered_bams_dir + "/{lib}_filt.bam")
 
 rule all:
     input:
-        expand(end_motifs_dir + "/{lib}_motifs.txt", lib = LIBS),
-        analysis_dir + "/motif_counts.txt",
-        analysis_dir + "/motifs_rel_freq_wide.txt"
+        expand(end_motifs_dir + "/{lib}_motifs.tsv", lib = LIBS),
+        analysis_dir + "/motif_counts.tsv",
+        analysis_dir + "/motifs_rel_freq_wide.tsv"
 
 # Create end motif files from filtered bams
 rule process_motifs:
     input:
         filtered_bams_dir + "/{lib}_filt.bam",
     output:
-        end_motifs_dir + "/{lib}_motifs.txt",
+        end_motifs_dir + "/{lib}_motifs.tsv",
     params:
         script = scriptdir + "/process_motifs.sh",
         fasta = genome_fasta,
@@ -43,10 +43,10 @@ rule process_motifs:
 # Aggregate motif files into count matrix and relative frequency matrix
 rule count_motifs:
     input:
-        expand(end_motifs_dir + "/{lib}_motifs.txt", lib = LIBS),
+        expand(end_motifs_dir + "/{lib}_motifs.tsv", lib = LIBS),
     output:
-        counts  = analysis_dir + "/motif_counts.txt",
-        relfreq = analysis_dir + "/motifs_rel_freq_wide.txt",
+        counts  = analysis_dir + "/motif_counts.tsv",
+        relfreq = analysis_dir + "/motifs_rel_freq_wide.tsv",
     params:
         script = scriptdir + "/motif_frequency_counter_efficient.py",
         input_dir = end_motifs_dir,

@@ -13,8 +13,9 @@ args <- commandArgs(trailingOnly = TRUE)
 cytobands_tsv <- args[1] #input
 libraries_file <- args[2] #input - must have columns "library" and "cohort"
 frag_counts_tsv <- args[3] #input
-armz_tsv <- args[4] #output
-log_file <- args[5]
+armz_long_tsv <- args[4] #output - long format
+armz_wide_tsv <- args[5] #output - wide format
+log_file <- args[6]
 
 library(tidyverse)
 
@@ -87,11 +88,23 @@ healthy_arms <-
 
 # Determine per arm z-scores
 cat("Calculating fragment proportion z scores...\n")
-arm_z <-
+armz_long <-
   arm_counts %>%
   left_join(healthy_arms, by = c("chr", "arm")) %>%
   mutate(z = (prop - mean) / sd) %>%
   select(!c("mean", "sd"))
 
-write_tsv(arm_z, file = armz_tsv)
+cat("Writing long dataframe...\n")
+write_tsv(armz_long, file = armz_long_tsv)
+
+# Create wide version for modeling
+cat("Pivoting data to wide format...\n")
+armz_wide <- armz_long %>%
+  select(-c(count, total, prop)) %>%
+  pivot_wider(names_from = c(chr, arm), values_from = z) %>%
+  arrange(library)
+
+cat("Writing wide dataframe...\n")
+write_tsv(armz_wide, file = armz_wide_tsv)
+
 cat("Script completed successfully.\n")
