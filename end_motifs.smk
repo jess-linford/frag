@@ -5,7 +5,7 @@ configfile: "config_end_motifs.yaml"
 filtered_bams_dir = config["filtered_bams_dir"]
 end_motifs_dir = config["end_motifs_dir"]
 analysis_dir = config["analysis_dir"]
-scripts_dir = config["scripts_dir"]
+scriptdir = config["scriptdir"]
 genome_fasta = config["genome_fasta"]
 motif_length = config["motif_length"]
 threads = config["threads"]
@@ -26,7 +26,7 @@ rule process_motifs:
     output:
         end_motifs_dir + "/{lib}_motifs.txt",
     params:
-        script = scripts_dir + "/process_motifs.sh",
+        script = scriptdir + "/process_motifs.sh",
         fasta = genome_fasta,
         motif_length = motif_length,
     threads: threads,
@@ -48,7 +48,7 @@ rule count_motifs:
         counts  = analysis_dir + "/motif_counts.txt",
         relfreq = analysis_dir + "/motifs_rel_freq_wide.txt",
     params:
-        script = scripts_dir + "/motif_frequency_counter_efficient.py",
+        script = scriptdir + "/motif_frequency_counter_efficient.py",
         input_dir = end_motifs_dir,
         motif_length = motif_length,
         output_dir = analysis_dir,
