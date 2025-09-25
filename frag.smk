@@ -17,6 +17,7 @@ frag_length_low = config["frag_length"]["low"]
 frag_length_high = config["frag_length"]["high"]
 cutpoint = config["frag_length"]["cutpoint"]
 bam_name_pattern = config["bam_name_pattern"]
+motif_length = config["motif_length"]
 
 # Directory values from config
 analysis_dir = config["directories"]["analysis"]
@@ -27,6 +28,7 @@ length_distros_dir = config["directories"]["length_distros"]
 medians_dir = config["directories"]["medians"]
 counts_dir = config["directories"]["counts"]
 gc_distros_dir = config["directories"]["gc_distros"]
+end_motifs_dir = config["directories"]["end_motifs"]
 benchdir = config["directories"]["bench"]
 logdir = config["directories"]["logs"]
 refdir = config["directories"]["ref"]
@@ -64,6 +66,9 @@ rule all:
         analysis_dir + "/frag_length_distros_wide.tsv",
         expand(medians_dir + "/{library}_med_frag_window_lengths.tsv", library = ALL_LIBRARIES),
         analysis_dir + "/med_frag_window_lengths.tsv",
+        expand(end_motifs_dir + "/{lib}_motifs.txt", lib = ALL_LIBRARIES),
+        analysis_dir + "/motif_counts.txt",
+        analysis_dir + "/motifs_rel_freq_wide.txt",
         expand(gc_distros_dir + "/{library}_gc_distro.csv", library = HEALTHY_LIBRARIES),
         gc_distros_dir + "/healthy_med_gc_distro.rds",
         expand(beds_dir + "/{library}_weights.bed", library = ALL_LIBRARIES),
@@ -81,7 +86,7 @@ rule all:
 rule make_gc_window_bed:
     benchmark: benchdir + "/make_gc_window_bed.benchmark.txt",
     input:
-        fasta = genome_fasta
+        fasta = genome_fasta,
     log: logdir + "/make_gc_window_bed.log",
     output: refdir + "/gc5mb.bed",
     params:
@@ -236,6 +241,49 @@ rule median_merge:
         {params.script} \
         {params.medians_dir} \
         {output} &> {log}
+        """
+
+# Create end motif files from filtered bams
+rule process_motifs:
+    input:
+        filtered_bams_dir + "/{lib}_filt.bam",
+    output:
+        end_motifs_dir + "/{lib}_motifs.txt",
+    params:
+        script = scripts_dir + "/process_motifs.sh",
+        fasta = genome_fasta,
+        motif_length = motif_length,
+    threads: threads,
+    shell:
+        """
+        {params.script} \
+        {input} \
+        {params.fasta} \
+        {params.motif_length} \
+        {threads} \
+        {output}
+        """
+
+# Aggregate motif files into count matrix and relative frequency matrix
+rule count_motifs:
+    input:
+        expand(end_motifs_dir + "/{lib}_motifs.txt", lib = LIBS),
+    output:
+        counts  = analysis_dir + "/motif_counts.txt",
+        relfreq = analysis_dir + "/motifs_rel_freq_wide.txt"
+    params:
+        script = scripts_dir + "/motif_frequency_counter_efficient.py",
+        input_dir = end_motifs_dir,
+        motif_length = motif_length,
+        output_dir = analysis_dir,
+    threads: threads,
+    shell:
+        """
+        python {params.script} \
+        {params.input_dir} \
+        {params.motif_length} \
+        {threads} \
+        {params.output_dir}
         """
 
 # Make GC distributions

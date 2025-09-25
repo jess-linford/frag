@@ -1,0 +1,7 @@
+filtered_bams_dir: "/mnt/data/urine/bams/filt"
+end_motifs_dir: "/mnt/data/urine/end_motifs"
+analysis_dir: "/mnt/data/urine/analysis"  # output directory
+scripts_dir: "/mnt/data/scripts/end_motifs"
+genome_fasta: "/mnt/data/scripts/frag/ref/GRCh38.p13.genome.fa"
+motif_length: 4
+threads: 12

@@ -1,5 +1,5 @@
 # Analysis parameters
-threads: 5
+threads: 8
 window_size: 5000000
 max_filter_length: 1000  # Maximum fragment length to keep in bam and bed files
 
@@ -8,6 +8,9 @@ frag_length:
   low: 30
   high: 750
   cutpoint: 150
+
+# End motif parameters
+motif_length: 4  # Length of end motifs to analyze
 
 # Name pattern in bam files
 bam_name_pattern: "{library}_aligned_dedup.bam"
@@ -22,6 +25,7 @@ directories:
   medians: "/mnt/data/urine/medians"
   counts: "/mnt/data/urine/counts"
   gc_distros: "/mnt/data/urine/gc_distros"
+  end_motifs: "/mnt/data/urine/end_motifs"
   bench: "/mnt/data/urine/benchmark"
   logs: "/mnt/data/urine/logs"
   ref: "/mnt/data/scripts/frag/ref"
@@ -31,7 +35,7 @@ directories:
 references:
   # Libraries file is a tab-separated file that must include at least the following columns: library, file(bam file path), and cohort.
   # One of the cohorts must be 'healthy'
-  libraries_file: "/mnt/data/scripts/frag/ref/batch3_libraries.txt"
+  libraries_file: "/mnt/data/scripts/frag/ref/libraries.txt"
   genome_fasta: "/mnt/data/scripts/frag/ref/GRCh38.p13.genome.fa"
   blacklist: "/mnt/data/scripts/frag/ref/hg38-blacklist.v2.bed.gz"
   cytobands: "/mnt/data/scripts/frag/ref/cytoBand.txt"
