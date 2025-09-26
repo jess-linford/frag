@@ -21,10 +21,9 @@ rule all:
 
 # Create end motif files from filtered bams
 rule process_motifs:
-    input:
-        filtered_bams_dir + "/{lib}_filt.bam",
-    output:
-        end_motifs_dir + "/{lib}_motifs.tsv",
+    benchmark: benchdir + "/{lib}_process_motifs.benchmark.txt",
+    input: filtered_bams_dir + "/{lib}_filt.bam",
+    output: end_motifs_dir + "/{lib}_motifs.tsv",
     params:
         script = scriptdir + "/process_motifs.sh",
         fasta = genome_fasta,
@@ -37,13 +36,13 @@ rule process_motifs:
         {params.fasta} \
         {params.motif_length} \
         {threads} \
-        {output}
+        {output} > {log} 2>&1
         """
 
 # Aggregate motif files into count matrix and relative frequency matrix
 rule count_motifs:
-    input:
-        expand(end_motifs_dir + "/{lib}_motifs.tsv", lib = LIBS),
+    benchmark: benchdir + "/count_motifs.benchmark.txt",
+    input: expand(end_motifs_dir + "/{lib}_motifs.tsv", lib = LIBS),
     output:
         counts  = analysis_dir + "/motif_counts.tsv",
         relfreq = analysis_dir + "/motifs_rel_freq_wide.tsv",
@@ -59,5 +58,5 @@ rule count_motifs:
         {params.input_dir} \
         {params.motif_length} \
         {threads} \
-        {params.output_dir}
+        {params.output_dir} > {log} 2>&1 
         """

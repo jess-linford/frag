@@ -111,7 +111,7 @@ rule make_gc_window_bed:
         {params.script} \
         {input.fasta} \
         {params.window_size} \
-        {output} &> {log}
+        {output} > {log} 2>&1
         """
 
 # Make GC and mappability restricted bins
@@ -129,7 +129,7 @@ rule make_keep_bed:
         {params.script} \
         {input.gc_window_bed} \
         {input.blklist} \
-        {output} &> {log}
+        {output} > {log} 2>&1
         """
 
 # Filter bams
@@ -153,7 +153,7 @@ rule filter_bams:
         {input} \
         {threads} \
         {params.max_filter_length} \
-        {output} &> {log}
+        {output} > {log} 2>&1
         """
 
 # Make bedfiles from filtered bams
@@ -172,7 +172,7 @@ rule bam_to_bed:
 	    {input} \
         {params.fasta} \
         {threads} \
-        {output} &> {log}
+        {output} > {log} 2>&1
         """
 
 # Generate fragment length distributions
@@ -192,7 +192,7 @@ rule frag_length_distro:
         {output} \
         {params.max_length} \
         {threads} \
-        {log} &> {log}
+        {log} > {log} 2>&1
         """
 
 # Merge fragment length distribution files
@@ -213,7 +213,7 @@ rule frag_length_distro_merge:
         {output.long} \
         {output.wide} \
         {threads} \
-        {log} &> {log}
+        {log} > {log} 2>&1
         """
 
 # Calculate median window lengths for each library
@@ -238,7 +238,7 @@ rule med_frag_window_lengths:
         {params.frag_length_high} \
         {threads} \
         {output} \
-        {log} &> {log}
+        {log} > {log} 2>&1
         """
 
 # Combine median window lengths for all libraries into one file
@@ -257,15 +257,15 @@ rule median_merge:
         {params.script} \
         {params.medians_dir} \
         {output.medians_long} \
-        {output.medians_wide} &> {log}
+        {output.medians_wide} > {log} 2>&1
         """
 
 # Create end motif files from filtered bams
 rule process_motifs:
-    input:
-        filtered_bams_dir + "/{lib}_filt.bam",
-    output:
-        end_motifs_dir + "/{lib}_motifs.tsv",
+    benchmark: benchdir + "/{lib}_process_motifs.benchmark.txt",
+    input: filtered_bams_dir + "/{lib}_filt.bam",
+    log: logdir + "/{lib}_process_motifs.log"
+    output: end_motifs_dir + "/{lib}_motifs.tsv",
     params:
         script = scriptdir + "/process_motifs.sh",
         fasta = genome_fasta,
@@ -278,16 +278,16 @@ rule process_motifs:
         {params.fasta} \
         {params.motif_length} \
         {threads} \
-        {output}
+        {output} > {log} 2>&1
         """
 
 # Aggregate motif files into count matrix and relative frequency matrix
 rule count_motifs:
-    input:
-        expand(end_motifs_dir + "/{lib}_motifs.tsv", lib = ALL_LIBRARIES),
+    benchmark: benchdir + "/count_motifs.benchmark.txt",
+    input: expand(end_motifs_dir + "/{lib}_motifs.tsv", lib = ALL_LIBRARIES),
     output:
         counts  = analysis_dir + "/motif_counts.tsv",
-        relfreq = analysis_dir + "/motifs_rel_freq_wide.tsv"
+        relfreq = analysis_dir + "/motifs_rel_freq_wide.tsv",
     params:
         script = scriptdir + "/motif_frequency_counter_efficient.py",
         input_dir = end_motifs_dir,
@@ -300,7 +300,7 @@ rule count_motifs:
         {params.input_dir} \
         {params.motif_length} \
         {threads} \
-        {params.output_dir}
+        {params.output_dir} > {log} 2>&1
         """
 
 # Make GC distributions
@@ -322,7 +322,7 @@ rule gc_distro:
         {params.frag_length_low} \
         {params.frag_length_high} \
         {threads} \
-        {log} &> {log}
+        {log} > {log} 2>&1
         """
 
 # Make healthy GC distributions summary file
@@ -338,7 +338,7 @@ rule healthy_gc:
         Rscript {params.script} \
         "{input}" \
         {output} \
-        {log} &> {log}
+        {log} > {log} 2>&1
         """
 
 # Add weights to fragments to normalize for library size and GC bias and split into short and long fragments
@@ -369,7 +369,7 @@ rule frag_weighting_and_size_split:
         "{params.cutpoint}" \
         {params.frag_length_high} \
         {output.weights_bed} \
-        {log} &> {log}
+        {log} > {log} 2>&1
         """
 
 # Find total "counts" (sum of weights) of fragments in each 5mb window
@@ -391,7 +391,7 @@ rule frag_total_window_count:
         {input.keep_bed} \
         {output} \
         {threads} \
-        {log} &> {log}
+        {log} > {log} 2>&1
         """
 
 # Find "counts" (sum of weights) of short and long fragments in each 5mb window
@@ -416,13 +416,13 @@ rule frag_short_and_long_window_count:
         {input.keep_bed} \
         {output.short} \
         {threads} \
-        {log} &>> {log}
+        {log} > {log} 2>&1
         Rscript {params.script} \
         {input.long} \
         {input.keep_bed} \
         {output.long} \
         {threads} \
-        {log} &>> {log}
+        {log} >> {log} 2>&1
         """
 
 # Merge total fragment counts files from all libraries
@@ -440,7 +440,7 @@ rule total_count_merge:
         "{input}" \
         {output} \
         {threads} \
-        {log} &> {log}
+        {log} > {log} 2>&1
         """
 
 # Merge short and long fragment counts files from all libraries
@@ -462,7 +462,7 @@ rule short_and_long_count_merge:
         "{input.long}" \
         "{output}" \
         {threads} \
-        {log} &> {log}
+        {log} > {log} 2>&1
         """
 
 # Calculate short:long fragment ratios and center at 0
@@ -470,10 +470,9 @@ rule make_ratios:
     benchmark: benchdir + "/make_ratios_{cutpoint}.benchmark.txt",
     input: analysis_dir + "/frag_counts_{cutpoint}.tsv",
     log: logdir + "/make_ratios_{cutpoint}.log",
-    output: analysis_dir + "/ratios_{cutpoint}.tsv",
     output: 
         ratios_long = analysis_dir + "/ratios_{cutpoint}_long.tsv",
-        ratios_wide = analysis_dir + "/ratios_{cutpoint}_wide.tsv"
+        ratios_wide = analysis_dir + "/ratios_{cutpoint}_wide.tsv",
     params:
         script = scriptdir + "/make_ratios.R",
     shell:
@@ -482,7 +481,7 @@ rule make_ratios:
         {input} \
         {output.ratios_long} \
         {output.ratios_wide} \
-        {log} &> {log}
+        {log} > {log} 2>&1
         """
 
 # Calculate chromosome arm fragment count z-scores
@@ -496,7 +495,7 @@ rule arm_z_scores:
     log: logdir + "/arm_z_scores.log",
     output: 
         armz_long = analysis_dir + "/armz_long.tsv",
-        armz_wide = analysis_dir = "/armz_wide.tsv"
+        armz_wide = analysis_dir = "/armz_wide.tsv",
     params: 
         script = scriptdir + "/arm_z.R",
     shell:
@@ -507,5 +506,5 @@ rule arm_z_scores:
         {input.frag_counts} \
         {output.armz_long} \
         {output.armz_wide} \
-        {log} &> {log}
+        {log} > {log} 2>&1
         """

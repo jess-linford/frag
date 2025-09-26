@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 
 # Load configuration
-configfile: "config/config_frag.yaml"
+configfile: "config/config_test.yaml"
 
 # Parameters from config
 threads = config["threads"]

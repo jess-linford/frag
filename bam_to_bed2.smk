@@ -28,13 +28,13 @@ rule bam_to_bed:
     params:
         fasta = genome_fasta,
         script = script_dir + "/bam_to_bed.sh",
-        threads = threads,
+    threads: threads,
     shell:
         """
         {params.script} \
 	    {input} \
         {params.fasta} \
-        {params.threads} \
+        {threads} \
         {output} > {log} 2>&1
         """
         

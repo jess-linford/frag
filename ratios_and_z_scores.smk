@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 # Parameters
-threads = 5
+threads = 8
 # Fragment length definitions used for short and long fragments (low to cutpoint and cutpoint to high)
 frag_length_low = 80
 frag_length_high = 220
@@ -23,7 +23,7 @@ scriptdir               = parentdir + "/scripts"
 keep_bed = refdir + "/keep_5mb.bed"
 # Libraries file is a tab-separated file that must include at least the following columns: library, file(bam), and cohort.
 # Toggle commenting out or including lines 40, 45, and 48-51 depending on which libraries you want to include.
-libraries_file = refdir + "/libraries.tsv"
+libraries_file = refdir + "/libraries.txt"
 cytobands = refdir + "/cytoBand.txt"
 
 # Setup sample name index as a python dictionary
@@ -52,7 +52,7 @@ HEALTHY_LIBRARIES = libraries[libraries['cohort'] == 'healthy']['library'].tolis
 
 rule all:
     input:
-        expand(gc_distros_dir + "/{library}_gc_distro.csv", library = ALL_LIBRARIES),
+        expand(gc_distros_dir + "/{library}_gc_distro.csv", library = HEALTHY_LIBRARIES),
         gc_distros_dir + "/healthy_med_gc_distro.rds",
         expand(beds_dir + "/{library}_weights.bed", library = ALL_LIBRARIES),
         expand(beds_dir + "/{library}_short_weights.bed", library = ALL_LIBRARIES),
@@ -62,8 +62,10 @@ rule all:
         expand(counts_dir + "/{library}_count_long.tsv", library = ALL_LIBRARIES),
         analysis_dir + "/frag_counts.tsv",
         analysis_dir + "/frag_counts_by_len_class.tsv",
-        analysis_dir + "/ratios.tsv",
-        analysis_dir + "/arm_z.tsv"
+        analysis_dir + "/ratios_long.tsv",
+        analysis_dir + "/ratios_wide.tsv"
+        analysis_dir + "/armz_long.tsv",
+        analysis_dir = "/armz_wide.tsv"
 
 # Make GC distributions
 rule gc_distro:
@@ -75,7 +77,7 @@ rule gc_distro:
         script = scriptdir + "/gc_distro.R",
         frag_length_low = frag_length_low,
         frag_length_high = frag_length_high,
-        threads = threads,
+    threads: threads,
     shell:
         """
         Rscript {params.script} \
@@ -83,9 +85,8 @@ rule gc_distro:
         {output} \
         {params.frag_length_low} \
         {params.frag_length_high} \
-        {params.threads} \
-        {log} \
-        > {log} 2>&1
+        {threads} \
+        {log} > {log} 2>&1
         """
 
 # Make healthy GC distributions summary file
@@ -117,16 +118,17 @@ rule frag_weighting_and_size_split:
         long = beds_dir + "/{library}_long_weights.bed",
     params:
         script = scriptdir + "/frag_weighting_and_size_split.R",
-        threads = threads,
         frag_length_low = frag_length_low,
         cutpoint = cutpoint,
         frag_length_high = frag_length_high,
+    threads: threads,
+    retries: 5,
     shell:
         """
         Rscript {params.script} \
         {input.healthy_med} \
         {input.frag_bed} \
-        {params.threads} \
+        {threads} \
         {params.frag_length_low} \
         {params.cutpoint} \
         {params.frag_length_high} \
@@ -151,26 +153,26 @@ rule frag_window_count:
         long = counts_dir + "/{library}_count_long.tsv",
     params:
         script = scriptdir + "/frag_window_count.R",
-        threads = threads,
+    threads: threads,
     shell:
         """
         Rscript {params.script} \
         {input.weights_bed} \
         {input.keep_bed} \
         {output.total_counts} \
-        {params.threads} \
-        {log} >> {log} 2>&1
+        {threads} \
+        {log} > {log} 2>&1
         Rscript {params.script} \
         {input.short} \
         {input.keep_bed} \
         {output.short} \
-        {params.threads} \
+        {threads} \
         {log} >> {log} 2>&1
         Rscript {params.script} \
         {input.long} \
         {input.keep_bed} \
         {output.long} \
-        {params.threads} \
+        {threads} \
         {log} >> {log} 2>&1
         """
 
@@ -186,15 +188,15 @@ rule count_merge:
         frag_counts_by_len_class = analysis_dir + "/frag_counts_by_len_class.tsv",
     params:
         script = scriptdir + "/count_merge.R",
-        threads = threads,        
+    threads: threads,        
     shell:
         """
         Rscript {params.script} \
         "{input}" \
         {output.frag_counts} \
         {output.frag_counts_by_len_class} \
-        {params.threads} \
-        {log} >> {log} 2>&1
+        {threads} \
+        {log} > {log} 2>&1
         """
 
 # Calculate short:long fragment ratios and center at 0
@@ -202,14 +204,17 @@ rule make_ratios:
     benchmark: benchdir + "/make_ratios.benchmark.txt",
     input: analysis_dir + "/frag_counts_by_len_class.tsv",
     log: logdir + "/make_ratios.log",
-    output: analysis_dir + "/ratios.tsv",
+    output: 
+        ratios_long = analysis_dir + "/ratios_long.tsv",
+        ratios_wide = analysis_dir + "/ratios_wide.tsv",
     params:
         script = scriptdir + "/make_ratios.R",
     shell:
-        """
+         """
         Rscript {params.script} \
         {input} \
-        {output} \
+        {output.ratios_long} \
+        {output.ratios_wide} \
         {log} > {log} 2>&1
         """
 
@@ -222,7 +227,9 @@ rule arm_z_scores:
         cytobands = cytobands,
         libraries = libraries_file,
     log: logdir + "/arm_z_scores.log",
-    output: analysis_dir + "/arm_z.tsv",
+    output: 
+        armz_long = analysis_dir + "/armz_long.tsv",
+        armz_wide = analysis_dir = "/armz_wide.tsv",
     params: 
         script = scriptdir + "/arm_z.R",
     shell:
@@ -231,6 +238,7 @@ rule arm_z_scores:
         {input.cytobands} \
         {input.libraries} \
         {input.frag_counts} \
-        {output} \
+        {output.armz_long} \
+        {output.armz_wide} \
         {log} > {log} 2>&1
         """

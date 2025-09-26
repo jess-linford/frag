@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 # Parameters
-threads = 5
+threads = 8
 max_filter_length = 1000 # Maximum fragment length to keep in histograms
 
 # Directory values
@@ -51,8 +51,7 @@ rule frag_length_distro:
         {input} \
         {output.metrics} \
         {output.histogram} \
-        {params.max_length} \
-        &> {log}
+        {params.max_length} > {log} 2>&1
         """
 
 # Merge fragment length distribution files
@@ -65,13 +64,13 @@ rule frag_length_distro_merge:
         wide = analysis_dir + "/frag_length_distros_wide.tsv",
     params:
         script = scriptdir + "/frag_length_distro_merge.R",
-        threads = threads,
+    threads: threads,
     shell:
         """
         Rscript {params.script} \
         "{input}" \
         {output.long} \
         {output.wide} \
-        {params.threads} \
-        {log} &> {log}
+        {threads} \
+        {log} > {log} 2>&1
         """

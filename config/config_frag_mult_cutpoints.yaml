@@ -1,5 +1,5 @@
 # Analysis parameters
-threads: 5
+threads: 8
 window_size: 5000000
 max_filter_length: 1000  # Maximum fragment length to keep in bam and bed files
 

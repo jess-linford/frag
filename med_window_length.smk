@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 # Parameters
-threads = 5
+threads = 8
 # Fragment length range
 frag_length_low = 30
 frag_length_high = 500
@@ -19,7 +19,7 @@ scriptdir               = parentdir + "/scripts"
 
 # Input files
 keep_bed = refdir + "/keep_5mb.bed"
-libraries_file = refdir + "/libraries.tsv"
+libraries_file = refdir + "/libraries.txt"
 
 # Read libraries column and extract library column as list
 libraries = pd.read_table(libraries_file)
@@ -28,7 +28,8 @@ ALL_LIBRARIES = libraries['library'].tolist()
 rule all:
     input:
         expand(medians_dir + "/{library}_med_frag_window_lengths.tsv", library = ALL_LIBRARIES),
-        analysis_dir + "/med_frag_window_lengths.tsv"
+        analysis_dir + "/med_frag_window_lengths_long.tsv",
+        analysis_dir + "/med_frag_window_lengths_wide.tsv"
 
 # Calculate median window lengths for each library
 rule med_frag_window_lengths:
@@ -42,7 +43,7 @@ rule med_frag_window_lengths:
         script = scriptdir + "/med_frag_window_lengths.R",
         frag_length_low = frag_length_low,
         frag_length_high = frag_length_high,
-        threads = threads,
+    threads: threads,
     shell:
         """
         Rscript {params.script} \
@@ -50,10 +51,9 @@ rule med_frag_window_lengths:
         {input.keep_bed} \
         {params.frag_length_low} \
         {params.frag_length_high} \
-        {params.threads} \
+        {threads} \
         {output} \
-        {log} \
-        > {log} 2>&1
+        {log} > {log} 2>&1
         """
 
 # Combine median window lengths for all libraries into one file
@@ -61,7 +61,9 @@ rule median_merge:
     benchmark: benchdir + "/median_merge.benchmark.txt",
     input: expand(medians_dir + "/{library}_med_frag_window_lengths.tsv", library = ALL_LIBRARIES),
     log: logdir + "/median_merge.log",
-    output: analysis_dir + "/med_frag_window_lengths.tsv",
+    output: 
+        medians_long = analysis_dir + "/med_frag_window_lengths_long.tsv",
+        medians_wide = analysis_dir + "/med_frag_window_lengths_wide.tsv",
     params:
         medians_dir = medians_dir,
         script = scriptdir + "/median_merge.sh",
@@ -69,5 +71,6 @@ rule median_merge:
         """
         {params.script} \
         {params.medians_dir} \
-        {output} &> {log}
+        {output.medians_long} \
+        {output.medians_wide} > {log} 2>&1
         """

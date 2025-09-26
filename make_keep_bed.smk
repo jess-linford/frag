@@ -35,7 +35,7 @@ rule make_gc_window_bed:
         {params.script} \
         {input.fasta} \
         {params.window_size} \
-        {output} &> {log}
+        {output} > {log} 2>&1
         """
 
 # Make GC and mappability restricted bins
@@ -53,5 +53,5 @@ rule make_keep_bed:
         {params.script} \
         {input.gc_window_bed} \
         {input.blklist} \
-        {output} &> {log}
+        {output} > {log} 2>&1
         """

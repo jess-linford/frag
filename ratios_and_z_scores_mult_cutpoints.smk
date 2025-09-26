@@ -2,11 +2,12 @@ import pandas as pd
 import numpy as np
 
 # Parameters
-threads = 5
+threads = 8
 # Fragment length definitions used for short and long fragments (low to cutpoint and cutpoint to high)
 frag_length_low = 30
 frag_length_high = 130
 cutpoints = [90, 100]
+window_size: 5000000
 
 # Directory values
 parentdir               = "/aclm350-zpool1/jlinford/test/frag_test"
@@ -23,7 +24,7 @@ scriptdir               = parentdir + "/scripts"
 keep_bed = refdir + "/keep_5mb.bed"
 # Libraries file is a tab-separated file that must include at least the following columns: library, file(bam), and cohort.
 # Toggle commenting out or including lines 40, 45, and 48-51 depending on which libraries you want to include.
-libraries_file = refdir + "/libraries.tsv"
+libraries_file = refdir + "/libraries.txt"
 cytobands = refdir + "/cytoBand.txt"
 
 # Setup sample name index as a python dictionary
@@ -52,7 +53,7 @@ HEALTHY_LIBRARIES = libraries[libraries['cohort'] == 'healthy']['library'].tolis
 
 rule all:
     input:
-        expand(gc_distros_dir + "/{library}_gc_distro.csv", library = ALL_LIBRARIES),
+        expand(gc_distros_dir + "/{library}_gc_distro.csv", library = HEALTHY_LIBRARIES),
         gc_distros_dir + "/healthy_med_gc_distro.rds",
         expand(beds_dir + "/{library}_weights.bed", library = ALL_LIBRARIES),
         expand(beds_dir + "/{library}_short_weights_{cutpoint}.bed", library = ALL_LIBRARIES, cutpoint = cutpoints),
@@ -62,8 +63,10 @@ rule all:
         expand(counts_dir + "/{library}_count_long_{cutpoint}.tsv", library = ALL_LIBRARIES, cutpoint = cutpoints),
         analysis_dir + "/frag_counts.tsv",
         expand(analysis_dir + "/frag_counts_{cutpoint}.tsv", cutpoint = cutpoints),
-        expand(analysis_dir + "/ratios_{cutpoint}.tsv", cutpoint = cutpoints),
-        analysis_dir + "/arm_z.tsv"
+        expand(analysis_dir + "/ratios_{cutpoint}_long.tsv", cutpoint = cutpoints),
+        expand(analysis_dir + "/ratios_{cutpoint}_wide.tsv")
+        analysis_dir + "/armz_long.tsv",
+        analysis_dir + "/armz_wide.tsv"
 
 # Make GC distributions
 rule gc_distro:
@@ -75,7 +78,7 @@ rule gc_distro:
         script = scriptdir + "/gc_distro.R",
         frag_length_low = frag_length_low,
         frag_length_high = frag_length_high,
-        threads = threads,
+    threads: threads,
     shell:
         """
         Rscript {params.script} \
@@ -83,9 +86,8 @@ rule gc_distro:
         {output} \
         {params.frag_length_low} \
         {params.frag_length_high} \
-        {params.threads} \
-        {log} \
-        > {log} 2>&1
+        {threads} \
+        {log} > {log} 2>&1
         """
 
 # Make healthy GC distributions summary file
@@ -117,16 +119,16 @@ rule frag_weighting_and_size_split:
         long = [beds_dir + "/{library}_long_weights_" + str(cutpoint) + ".bed" for cutpoint in cutpoints]
     params:
         script = scriptdir + "/frag_weighting_and_size_split_mult_cuts.R",
-        threads = threads,
         frag_length_low = frag_length_low,
         cutpoint = ",".join(map(str, cutpoints)),
         frag_length_high = frag_length_high,
+    threads: threads
     shell:
         """
         Rscript {params.script} \
         {input.healthy_med} \
         {input.frag_bed} \
-        {params.threads} \
+        {threads} \
         {params.frag_length_low} \
         "{params.cutpoint}" \
         {params.frag_length_high} \
@@ -144,15 +146,15 @@ rule frag_total_window_count:
     output: counts_dir + "/{library}_count_total.tsv",
     params:
         script = scriptdir + "/frag_window_count.R",
-        threads = threads,
+    threads: threads,
     shell:
         """
         Rscript {params.script} \
         {input.weights_bed} \
         {input.keep_bed} \
         {output} \
-        {params.threads} \
-        {log} >> {log} 2>&1
+        {threads} \
+        {log} > {log} 2>&1
         """
 
 # Find "counts" (sum of weights) of short and long fragments in each 5mb window
@@ -168,20 +170,20 @@ rule frag_short_and_long_window_count:
         long = counts_dir + "/{library}_count_long_{cutpoint}.tsv",
     params:
         script = scriptdir + "/frag_window_count.R",
-        threads = threads,
+    threads: threads,
     shell:
         """
         Rscript {params.script} \
         {input.short} \
         {input.keep_bed} \
         {output.short} \
-        {params.threads} \
-        {log} >> {log} 2>&1
+        {threads} \
+        {log} > {log} 2>&1
         Rscript {params.script} \
         {input.long} \
         {input.keep_bed} \
         {output.long} \
-        {params.threads} \
+        {threads} \
         {log} >> {log} 2>&1
         """
 
@@ -193,14 +195,14 @@ rule total_count_merge:
     output: analysis_dir + "/frag_counts.tsv",
     params:
         script = scriptdir + "/total_count_merge.R",
-        threads = threads,
+    threads: threads,
     shell:
         """
         Rscript {params.script} \
         "{input}" \
         {output} \
-        {params.threads} \
-        {log} >> {log} 2>&1
+        {threads} \
+        {log} > {log} 2>&1
         """
 
 # Merge short and long fragment counts files from all libraries
@@ -214,15 +216,15 @@ rule short_and_long_count_merge:
         expand(analysis_dir + "/frag_counts_{cutpoint}.tsv", cutpoint = cutpoints)
     params:
         script = scriptdir + "/short_and_long_count_merge.R",
-        threads = threads
+    threads: threads
     shell:
         """
         Rscript {params.script} \
         "{input.short}" \
         "{input.long}" \
         "{output}" \
-        {params.threads} \
-        {log} >> {log} 2>&1
+        {threads} \
+        {log} > {log} 2>&1
         """
 
 # Calculate short:long fragment ratios and center at 0
@@ -230,14 +232,17 @@ rule make_ratios:
     benchmark: benchdir + "/make_ratios_{cutpoint}.benchmark.txt",
     input: analysis_dir + "/frag_counts_{cutpoint}.tsv",
     log: logdir + "/make_ratios_{cutpoint}.log",
-    output: analysis_dir + "/ratios_{cutpoint}.tsv",
+        output: 
+        ratios_long = analysis_dir + "/ratios_{cutpoint}_long.tsv",
+        ratios_wide = analysis_dir + "/ratios_{cutpoint}_wide.tsv",
     params:
         script = scriptdir + "/make_ratios.R",
     shell:
         """
         Rscript {params.script} \
         {input} \
-        {output} \
+        {output.ratios_long} \
+        {output.ratios_wide} \
         {log} > {log} 2>&1
         """
 
@@ -250,7 +255,9 @@ rule arm_z_scores:
         cytobands = cytobands,
         libraries = libraries_file,
     log: logdir + "/arm_z_scores.log",
-    output: analysis_dir + "/arm_z.tsv",
+    output: 
+        armz_long = analysis_dir + "/armz_long.tsv",
+        armz_wide = analysis_dir = "/armz_wide.tsv",
     params: 
         script = scriptdir + "/arm_z.R",
     shell:
@@ -259,6 +266,7 @@ rule arm_z_scores:
         {input.cytobands} \
         {input.libraries} \
         {input.frag_counts} \
-        {output} \
+        {output.armz_long} \
+        {output.armz_wide} \
         {log} > {log} 2>&1
         """

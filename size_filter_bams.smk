@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 # Parameters
-threads = 5
+threads = 8
 min_filter_length = 90
 max_filter_length = 150
 
@@ -25,14 +25,14 @@ rule filter_bams:
     output: output_dir + "/{lib}_filt.bam",
     params:
         script = script_dir + "/size_filter_bam2.sh",
-        threads = threads,
         min_filter_length = min_filter_length,
         max_filter_length = max_filter_length,
+    threads: threads,
     shell:
         """
         {params.script} \
         {input} \
-        {params.threads} \
+        {params} \
         {params.min_filter_length} \
         {params.max_filter_length} \
         {output}

@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 # Parameters
-threads = 5
+threads = 8
 max_filter_length = 1000
 
 # Directory values
@@ -37,14 +37,14 @@ rule filter_bams:
         # script = scriptdir + "/filter_bam_autosomes.sh", 
         # # Filter by size only
         # script = scriptdir + "/size_filter_bam.sh",
-        threads = threads,
         max_filter_length = max_filter_length,
+    threads: threads,
     shell:
         """
         {params.script} \
         {input} \
-        {params.threads} \
+        {threads} \
         {params.max_filter_length} \
-        {output} &> {log}
+        {output} > {log} 2>&1
         """
         
