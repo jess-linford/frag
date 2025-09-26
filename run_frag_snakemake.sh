@@ -1,6 +1,6 @@
 start=$SECONDS
 
-snakemake -s frag.smk -j 30 -w 60 -p
+snakemake -s frag.smk -j 224 -w 60 -p
 
 end=$SECONDS
 duration=$(( end - start ))

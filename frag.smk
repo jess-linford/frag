@@ -253,7 +253,7 @@ rule median_merge:
 rule process_motifs:
     benchmark: benchdir + "/{lib}_process_motifs.benchmark.txt",
     input: filtered_bams_dir + "/{lib}_filt.bam",
-    log: logdir + "/{lib}_process_motifs.log"
+    log: logdir + "/{lib}_process_motifs.log",
     output: end_motifs_dir + "/{lib}_motifs.tsv",
     params:
         script = scriptdir + "/process_motifs.sh",
@@ -274,6 +274,7 @@ rule process_motifs:
 rule count_motifs:
     benchmark: benchdir + "/count_motifs.benchmark.txt",
     input: expand(end_motifs_dir + "/{lib}_motifs.tsv", lib = ALL_LIBRARIES),
+    log: logdir + "/count_motifs.log",
     output:
         counts  = analysis_dir + "/motif_counts.tsv",
         relfreq = analysis_dir + "/motifs_rel_freq_wide.tsv",
