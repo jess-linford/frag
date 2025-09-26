@@ -84,7 +84,7 @@ rule all:
         expand(counts_dir + "/{library}_count_long.tsv", library = ALL_LIBRARIES),
         analysis_dir + "/frag_counts.tsv",
         analysis_dir + "/frag_counts_by_len_class.tsv",
-        analysis_dir + "/ratios.tsv"
+        analysis_dir + "/ratios.tsv",
         # analysis_dir + "/arm_z.tsv"
 
 # # Make 5mb window bed file with GC content from fasta file

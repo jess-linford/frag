@@ -92,7 +92,7 @@ rule all:
         analysis_dir + "/frag_counts.tsv",
         expand(analysis_dir + "/frag_counts_{cutpoint}.tsv", cutpoint = cutpoints),
         expand(analysis_dir + "/ratios_{cutpoint}_long.tsv", cutpoint = cutpoints),
-        expand(analysis_dir + "/ratios_{cutpoint}_wide.tsv")
+        expand(analysis_dir + "/ratios_{cutpoint}_wide.tsv"),
         analysis_dir + "/armz_long.tsv",
         analysis_dir + "/armz_wide.tsv"
 
@@ -495,7 +495,7 @@ rule arm_z_scores:
     log: logdir + "/arm_z_scores.log",
     output: 
         armz_long = analysis_dir + "/armz_long.tsv",
-        armz_wide = analysis_dir = "/armz_wide.tsv",
+        armz_wide = analysis_dir + "/armz_wide.tsv",
     params: 
         script = scriptdir + "/arm_z.R",
     shell:

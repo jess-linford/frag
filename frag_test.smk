@@ -81,9 +81,9 @@ rule all:
         analysis_dir + "/frag_counts.tsv",
         analysis_dir + "/frag_counts_by_len_class.tsv",
         analysis_dir + "/ratios_long.tsv",
-        analysis_dir + "/ratios_wide.tsv"
+        analysis_dir + "/ratios_wide.tsv",
         analysis_dir + "/armz_long.tsv",
-        analysis_dir = "/armz_wide.tsv"
+        analysis_dir + "/armz_wide.tsv"
 
 # Make 5mb window bed file with GC content from fasta file
 rule make_gc_window_bed:
@@ -455,7 +455,7 @@ rule arm_z_scores:
     log: logdir + "/arm_z_scores.log",
     output: 
         armz_long = analysis_dir + "/armz_long.tsv",
-        armz_wide = analysis_dir = "/armz_wide.tsv",
+        armz_wide = analysis_dir + "/armz_wide.tsv",
     params: 
         script = scriptdir + "/arm_z.R",
     shell:
