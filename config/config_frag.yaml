@@ -5,8 +5,8 @@ max_filter_length: 1000  # Maximum fragment length to keep in bam and bed files
 
 # Fragment length definitions
 frag_length:
-  low: 30
-  high: 750
+  low: 90
+  high: 220
   cutpoint: 150
 
 # End motif parameters
@@ -15,27 +15,23 @@ motif_length: 4  # Length of end motifs to analyze
 # Name pattern in bam files
 bam_name_pattern: "{library}_aligned_dedup.bam"
 
-# Directory structure
+# Directory roots
+# Internal output directories (beds, counts, derived reference data, logs,
+# benchmarks, etc.) are created beneath output_folder by the Snakefile and do not
+# need to be configured.
 directories:
-  analysis: "/mnt/data/urine/analysis"
+  output_folder: "/mnt/data/urine/analysis"
   input_bams: "/mnt/data/urine/bams/dedup"
-  filtered_bams: "/mnt/data/urine/bams/filt"
-  beds: "/mnt/data/urine/beds"
-  length_distros: "/mnt/data/urine/length_distros"
-  medians: "/mnt/data/urine/medians"
-  counts: "/mnt/data/urine/counts"
-  gc_distros: "/mnt/data/urine/gc_distros"
-  end_motifs: "/mnt/data/urine/end_motifs"
-  bench: "/mnt/data/urine/benchmark"
-  logs: "/mnt/data/urine/logs"
-  ref: "/mnt/data/scripts/frag/ref"
-  scripts: "/mnt/data/scripts/frag/scripts"
+  reference: "/mnt/data/scripts/frag/ref"
 
 # Reference files
+# Filenames below are resolved relative to directories.reference.
+# This directory is treated as input-only; derived reference files are written
+# beneath directories.output_folder/reference_data.
 references:
-  # Libraries file is a tab-separated file that must include at least the following columns: library, file(bam file path), and cohort.
-  # One of the cohorts must be 'healthy'
-  libraries_file: "/mnt/data/scripts/frag/ref/libraries.txt"
-  genome_fasta: "/mnt/data/scripts/frag/ref/GRCh38.p13.genome.fa"
-  blacklist: "/mnt/data/scripts/frag/ref/hg38-blacklist.v2.bed.gz"
-  cytobands: "/mnt/data/scripts/frag/ref/cytoBand.txt"
+  # Libraries file is a tab-separated file with columns library and cohort.
+  # One of the cohorts must be 'healthy'.
+  libraries_file: "libraries.txt"
+  genome_fasta: "GRCh38.p13.genome.fa"
+  blacklist: "hg38-blacklist.v2.bed.gz"
+  cytobands: "cytoBand.txt"

@@ -3,6 +3,7 @@
 #     Fragmentomic Analysis of Cell-free DNA Whole Genome Sequencing           #
 #                                                                              #
 #########1#########2#########3#########4#########5#########6#########7#########8
+import os
 import pandas as pd
 import numpy as np
 
@@ -19,57 +20,92 @@ cutpoint = config["frag_length"]["cutpoint"]
 bam_name_pattern = config["bam_name_pattern"]
 motif_length = config["motif_length"]
 
-# Directory values from config
-analysis_dir = config["directories"]["analysis"]
+# Directory roots from config
+OUTPUT_DIR = config["directories"]["output_folder"]
 input_bams_dir = config["directories"]["input_bams"]
-filtered_bams_dir = config["directories"]["filtered_bams"]
-beds_dir = config["directories"]["beds"]
-length_distros_dir = config["directories"]["length_distros"]
-medians_dir = config["directories"]["medians"]
-counts_dir = config["directories"]["counts"]
-gc_distros_dir = config["directories"]["gc_distros"]
-end_motifs_dir = config["directories"]["end_motifs"]
-benchdir = config["directories"]["bench"]
-logdir = config["directories"]["logs"]
-refdir = config["directories"]["ref"]
-scriptdir = config["directories"]["scripts"]
+refdir = config["directories"]["reference"]
 
-# Reference files from config
-genome_fasta = config["references"]["genome_fasta"]
-blklist = config["references"]["blacklist"]
-libraries_file = config["references"]["libraries_file"]
-cytobands = config["references"]["cytobands"]
+# Internal output directory structure
+# These are workflow implementation details rather than user-configurable paths.
+DIRS = {
+    "filtered_bams": os.path.join(OUTPUT_DIR, "filtered_bams"),
+    "beds": os.path.join(OUTPUT_DIR, "beds"),
+    "length_distros": os.path.join(OUTPUT_DIR, "length_distros"),
+    "medians": os.path.join(OUTPUT_DIR, "medians"),
+    "counts": os.path.join(OUTPUT_DIR, "counts"),
+    "gc_distros": os.path.join(OUTPUT_DIR, "gc_distros"),
+    "end_motifs": os.path.join(OUTPUT_DIR, "end_motifs"),
+    "reference_data": os.path.join(OUTPUT_DIR, "reference_data"),
+    "bench": os.path.join(OUTPUT_DIR, "benchmark"),
+    "logs": os.path.join(OUTPUT_DIR, "logs"),
+}
 
-# Setup sample name index as a python dictionary
+filtered_bams_dir = DIRS["filtered_bams"]
+beds_dir = DIRS["beds"]
+length_distros_dir = DIRS["length_distros"]
+medians_dir = DIRS["medians"]
+counts_dir = DIRS["counts"]
+gc_distros_dir = DIRS["gc_distros"]
+end_motifs_dir = DIRS["end_motifs"]
+derived_ref_dir = DIRS["reference_data"]
+benchdir = DIRS["bench"]
+logdir = DIRS["logs"]
+
+# Derived reference resources are pipeline outputs, not inputs.
+gc_window_bed = os.path.join(derived_ref_dir, "gc5mb.bed")
+keep_bed = os.path.join(derived_ref_dir, "keep_5mb.bed")
+
+# Scripts live in scripts/ alongside this workflow's Snakefile.
+scriptdir = os.path.join(workflow.basedir, "scripts")
+
+# Reference filenames are relative to the configured reference directory.
+genome_fasta = os.path.join(refdir, config["references"]["genome_fasta"])
+blklist = os.path.join(refdir, config["references"]["blacklist"])
+libraries_file = os.path.join(refdir, config["references"]["libraries_file"])
+cytobands = os.path.join(refdir, config["references"]["cytobands"])
+
+# Construct input BAM paths from the configured input directory and naming pattern.
+# This keeps sample discovery/readability checks consistent with rule filter_bams.
+def get_input_bam(library):
+    return os.path.join(
+        input_bams_dir,
+        bam_name_pattern.format(library=library)
+    )
+
+# Setup sample name index as a pandas DataFrame.
 libraries = pd.read_table(libraries_file)
 
-# Ensure readable bams
-readable = []
-for x in libraries.file:
-    readable.append(os.access(x, os.R_OK))
-libraries['readable'] = readable
-libraries = libraries[libraries.readable == True]
+# Keep only libraries whose configured input BAM is readable.
+libraries["input_bam"] = libraries["library"].apply(get_input_bam)
+libraries["readable"] = libraries["input_bam"].apply(lambda path: os.access(path, os.R_OK))
+libraries = libraries[libraries["readable"]]
 
 ALL_LIBRARIES = libraries['library'].tolist()
 
 # Make a list of healthy libraries
 HEALTHY_LIBRARIES = libraries[libraries['cohort'] == 'healthy']['library'].tolist()
 
+# Ensure the output tree exists before any jobs start. This includes directories
+# used only for logs and benchmarks as well as scientific outputs.
+onstart:
+    for directory in [OUTPUT_DIR, *DIRS.values()]:
+        os.makedirs(directory, exist_ok=True)
+
 rule all:
     input:
-        refdir + "/gc5mb.bed",
-        refdir + "/keep_5mb.bed",
+        gc_window_bed,
+        keep_bed,
         expand(filtered_bams_dir + "/{library}_filt.bam", library = ALL_LIBRARIES),
         expand(beds_dir + "/{library}_frag.bed", library = ALL_LIBRARIES),
         expand(length_distros_dir + "/{library}_frag_length_distro.tsv", library = ALL_LIBRARIES),
-        analysis_dir + "/frag_length_distros_long.tsv",
-        analysis_dir + "/frag_length_distros_wide.tsv",
+        OUTPUT_DIR + "/frag_length_distros_long.tsv",
+        OUTPUT_DIR + "/frag_length_distros_wide.tsv",
         expand(medians_dir + "/{library}_med_frag_window_lengths.tsv", library = ALL_LIBRARIES),
-        analysis_dir + "/med_frag_window_lengths_long.tsv",
-        analysis_dir + "/med_frag_window_lengths_wide.tsv",
+        OUTPUT_DIR + "/med_frag_window_lengths_long.tsv",
+        OUTPUT_DIR + "/med_frag_window_lengths_wide.tsv",
         expand(end_motifs_dir + "/{lib}_motifs.tsv", lib = ALL_LIBRARIES),
-        analysis_dir + "/motif_counts.tsv",
-        analysis_dir + "/motifs_rel_freq_wide.tsv",
+        OUTPUT_DIR + "/motif_counts.tsv",
+        OUTPUT_DIR + "/motifs_rel_freq_wide.tsv",
         expand(gc_distros_dir + "/{library}_gc_distro.csv", library = HEALTHY_LIBRARIES),
         gc_distros_dir + "/healthy_med_gc_distro.rds",
         expand(beds_dir + "/{library}_weights.bed", library = ALL_LIBRARIES),
@@ -78,12 +114,12 @@ rule all:
         expand(counts_dir + "/{library}_count_total.tsv", library = ALL_LIBRARIES),
         expand(counts_dir + "/{library}_count_short.tsv", library = ALL_LIBRARIES),
         expand(counts_dir + "/{library}_count_long.tsv", library = ALL_LIBRARIES),
-        analysis_dir + "/frag_counts.tsv",
-        analysis_dir + "/frag_counts_by_len_class.tsv",
-        analysis_dir + "/ratios_long.tsv",
-        analysis_dir + "/ratios_wide.tsv",
-        analysis_dir + "/armz_long.tsv",
-        analysis_dir + "/armz_wide.tsv"
+        OUTPUT_DIR + "/frag_counts.tsv",
+        OUTPUT_DIR + "/frag_counts_by_len_class.tsv",
+        OUTPUT_DIR + "/ratios_long.tsv",
+        OUTPUT_DIR + "/ratios_wide.tsv",
+        OUTPUT_DIR + "/armz_long.tsv",
+        OUTPUT_DIR + "/armz_wide.tsv"
 
 # Make 5mb window bed file with GC content from fasta file
 rule make_gc_window_bed:
@@ -91,7 +127,7 @@ rule make_gc_window_bed:
     input:
         fasta = genome_fasta,
     log: logdir + "/make_gc_window_bed.log",
-    output: refdir + "/gc5mb.bed",
+    output: gc_window_bed,
     params:
         script = scriptdir + "/make_gc_window_bed.sh",
         window_size = window_size,
@@ -107,10 +143,10 @@ rule make_gc_window_bed:
 rule make_keep_bed:
     benchmark: benchdir + "/make_keep_bed.benchmark.txt",
     input:
-        gc_window_bed = refdir + "/gc5mb.bed",
+        gc_window_bed = gc_window_bed,
         blklist = blklist,
     log: logdir + "/make_keep_bed.log",
-    output: refdir + "/keep_5mb.bed",
+    output: keep_bed,
     params:
         script = scriptdir + "/make_keep_bed.sh",
     shell:
@@ -124,11 +160,8 @@ rule make_keep_bed:
 # Filter bams
 rule filter_bams:
     benchmark: benchdir + "/{library}_filter_bams.benchmark.txt",
-    input: 
-        lambda wildcards: os.path.join(
-            input_bams_dir,
-            bam_name_pattern.format(library=wildcards.library)
-        ),
+    input:
+        lambda wildcards: get_input_bam(wildcards.library),
     log: logdir + "/{library}_filter_bams.log",
     output: filtered_bams_dir + "/{library}_filt.bam",
     params:
@@ -190,8 +223,8 @@ rule frag_length_distro_merge:
     input: expand(length_distros_dir + "/{library}_frag_length_distro.tsv", library = ALL_LIBRARIES),
     log: logdir + "/frag_length_distro_merge.log",
     output: 
-        long = analysis_dir + "/frag_length_distros_long.tsv",
-        wide = analysis_dir + "/frag_length_distros_wide.tsv",
+        long = OUTPUT_DIR + "/frag_length_distros_long.tsv",
+        wide = OUTPUT_DIR + "/frag_length_distros_wide.tsv",
     params:
         script = scriptdir + "/frag_length_distro_merge.R",
     threads: threads,
@@ -210,7 +243,7 @@ rule med_frag_window_lengths:
     benchmark: benchdir + "/{library}_med_frag_window_lengths.benchmark.txt",
     input: 
         frag_bed = beds_dir + "/{library}_frag.bed",
-        keep_bed = refdir + "/keep_5mb.bed",
+        keep_bed = keep_bed,
     log: logdir + "/{library}_med_frag_window_lengths.log",
     output: medians_dir + "/{library}_med_frag_window_lengths.tsv",
     params:
@@ -236,8 +269,8 @@ rule median_merge:
     input: expand(medians_dir + "/{library}_med_frag_window_lengths.tsv", library = ALL_LIBRARIES),
     log: logdir + "/median_merge.log",
     output: 
-        medians_long = analysis_dir + "/med_frag_window_lengths_long.tsv",
-        medians_wide = analysis_dir + "/med_frag_window_lengths_wide.tsv",
+        medians_long = OUTPUT_DIR + "/med_frag_window_lengths_long.tsv",
+        medians_wide = OUTPUT_DIR + "/med_frag_window_lengths_wide.tsv",
     params:
         medians_dir = medians_dir,
         script = scriptdir + "/median_merge.sh",
@@ -276,13 +309,13 @@ rule count_motifs:
     input: expand(end_motifs_dir + "/{lib}_motifs.tsv", lib = ALL_LIBRARIES),
     log: logdir + "/count_motifs.log",
     output:
-        counts  = analysis_dir + "/motif_counts.tsv",
-        relfreq = analysis_dir + "/motifs_rel_freq_wide.tsv",
+        counts  = OUTPUT_DIR + "/motif_counts.tsv",
+        relfreq = OUTPUT_DIR + "/motifs_rel_freq_wide.tsv",
     params:
         script = scriptdir + "/motif_frequency_counter_efficient.py",
         input_dir = end_motifs_dir,
         motif_length = motif_length,
-        output_dir = analysis_dir,
+        output_dir = OUTPUT_DIR,
     threads: threads,
     shell:
         """
@@ -371,7 +404,7 @@ rule frag_window_count:
         weights_bed = beds_dir + "/{library}_weights.bed",
         short = beds_dir + "/{library}_short_weights.bed",
         long = beds_dir + "/{library}_long_weights.bed",
-        keep_bed = refdir + "/keep_5mb.bed",
+        keep_bed = keep_bed,
     log: logdir + "/{library}_frag_window_count.log",
     output:
         total_counts = counts_dir + "/{library}_count_total.tsv",
@@ -411,8 +444,8 @@ rule count_merge:
     input: expand(counts_dir + "/{library}_count_{length}.tsv", library = ALL_LIBRARIES, length = ["short", "long", "total"]),
     log: logdir + "/count_merge.log",
     output: 
-        frag_counts = analysis_dir + "/frag_counts.tsv",
-        frag_counts_by_len_class = analysis_dir + "/frag_counts_by_len_class.tsv",
+        frag_counts = OUTPUT_DIR + "/frag_counts.tsv",
+        frag_counts_by_len_class = OUTPUT_DIR + "/frag_counts_by_len_class.tsv",
     params:
         script = scriptdir + "/count_merge.R",
     threads: threads,        
@@ -429,11 +462,11 @@ rule count_merge:
 # Calculate short:long fragment ratios and center at 0
 rule make_ratios:
     benchmark: benchdir + "/make_ratios.benchmark.txt",
-    input: analysis_dir + "/frag_counts_by_len_class.tsv",
+    input: OUTPUT_DIR + "/frag_counts_by_len_class.tsv",
     log: logdir + "/make_ratios.log",
     output: 
-        ratios_long = analysis_dir + "/ratios_long.tsv",
-        ratios_wide = analysis_dir + "/ratios_wide.tsv",
+        ratios_long = OUTPUT_DIR + "/ratios_long.tsv",
+        ratios_wide = OUTPUT_DIR + "/ratios_wide.tsv",
     params:
         script = scriptdir + "/make_ratios.R",
     shell:
@@ -450,13 +483,13 @@ rule make_ratios:
 rule arm_z_scores:
     benchmark: benchdir + "/arm_z_scores.benchmark.txt",
     input: 
-        frag_counts = analysis_dir + "/frag_counts.tsv",
+        frag_counts = OUTPUT_DIR + "/frag_counts.tsv",
         cytobands = cytobands,
         libraries = libraries_file,
     log: logdir + "/arm_z_scores.log",
     output: 
-        armz_long = analysis_dir + "/armz_long.tsv",
-        armz_wide = analysis_dir + "/armz_wide.tsv",
+        armz_long = OUTPUT_DIR + "/armz_long.tsv",
+        armz_wide = OUTPUT_DIR + "/armz_wide.tsv",
     params: 
         script = scriptdir + "/arm_z.R",
     shell:
