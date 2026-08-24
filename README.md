@@ -23,28 +23,46 @@ Separate pipelines are provided to provide parts of the analysis in isolation:
 - window_size = width of windows to split the genome into (eg. 5Mb = 5000000).
 - max_filter_length = maximum fragment length to keep in bam and bed files.
 - frag_length_low & frag_length_high = fragment lengths considered in the following calculations: median fragment window lengths, fragment counts, short:long ratios, and chromosome arm z-scores. The fragment length distributions output two sets of files - one showing all fragments below max_filter_length, and one restricted to fragments between frag_length_low and frag_length_high.
-- cutpoint or cutpoints = a single fragment lengths or list of fragment lengths (eg. \[90, 100, 110]) specifying what length separates short and long fragments. Short fragments have lengths between frag_length_low and cutpoint and long fragments have lengths between cutpoint and frag_length_high. The multiple cutpoints pipelines allow you to test a variety of fragment length definitions without running the pipeline more than once.
+- cutpoint or cutpoints = a single fragment length or list of fragment lengths (eg. \[90, 100, 110]) specifying what length separates short and long fragments. Short fragments have lengths between frag_length_low and cutpoint and long fragments have lengths between cutpoint and frag_length_high. The multiple cutpoints pipelines allow you to test a variety of fragment length definitions without running the pipeline more than once.
 
 #### Input files:
 - genome_fasta = Fasta reference file for the genome.
 - blklist = Blacklist regions for the genome. A blacklist for hg38 is available in the ref folder of this repo.
-- libraries_file = A tab-separated file with at least the following columns: library (name), file (bam file path), and cohort (one cohort should be 'healthy'). Other columns may be included if additional filtering is desired. An example library file is in the ref folder.
+- libraries_file = A tab-separated file with at least the following columns: library (name) and cohort (one cohort should be 'healthy'). BAM file paths are constructed from the configured input_bams directory and bam_name_pattern, so a file column is not required. Other columns may be included if additional filtering is desired. An example library file is in the ref folder.
 - cytobands = File with chromosome arm definitions. File for hg38 is in ref folder.
 
 #### Folder structure:
-The pipelines are set up to use folders in the following structure, but file paths may be modified to preference.
+The main output location is specified by `directories.output_folder` in the config file. Pipeline-generated files are organized automatically into subdirectories within this folder. Input BAMs and static reference files are stored separately and specified by `directories.input_bams` and `directories.reference`, respectively. The `scripts` directory is resolved relative to the location of the Snakefile.
 
-    parent_directory
-    ├── /analysis
-    │   ├── /bams
-    │   ├── /beds
-    │   ├── /length_distros
-    │   ├── /medians
-    │   ├── /counts
-    │   └── /gc_distros
-    ├── /benchmark
-    ├── /logs
-    ├── /ref
-    └── /scripts
+For example:
+
+    workflow_directory
+    ├── frag.smk
+    ├── scripts/
+    └── ref/
+        ├── libraries.txt
+        ├── GRCh38.p13.genome.fa
+        ├── hg38-blacklist.v2.bed.gz
+        └── cytoBand.txt
+
+    input_bams/
+    └── <library>_aligned_dedup.bam
+
+    output_folder/
+    ├── filtered_bams/
+    ├── beds/
+    ├── length_distros/
+    ├── medians/
+    ├── counts/
+    ├── gc_distros/
+    ├── end_motifs/
+    ├── reference_data/
+    │   ├── gc5mb.bed
+    │   └── keep_5mb.bed
+    ├── benchmark/
+    ├── logs/
+    └── merged analysis output files
+
+Changing `directories.output_folder` moves the complete set of pipeline-generated outputs without requiring each output subdirectory to be configured separately.
 
 
